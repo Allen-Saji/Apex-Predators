@@ -10,3 +10,9 @@ evm_version = "paris"
 via_ir = true
 optimizer = true
 optimizer_runs = 200
+
+[rpc_endpoints]
+monad_testnet = "https://testnet-rpc.monad.xyz"
+
+[etherscan]
+monad_testnet = { key = "${ETHERSCAN_API_KEY}", url = "https://testnet.monadexplorer.com/api", chain = 10143 }
