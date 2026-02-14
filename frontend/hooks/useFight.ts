@@ -20,7 +20,7 @@ function generateFight(left: Fighter, right: Fighter): Turn[] {
     if (defender === 'left') hpLeft = Math.max(0, hpLeft - damage);
     else hpRight = Math.max(0, hpRight - damage);
 
-    const critText = isCrit ? ' 💥 CRITICAL HIT!' : '';
+    const critText = isCrit ? ' CRITICAL HIT!' : '';
     const text = `${f.name} lands a ${move.name} for ${damage} damage!${critText}`;
     turns.push({ attacker, defender, moveName: move.name, damage, isCrit, hpLeft, hpRight, text });
 
@@ -50,6 +50,7 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
   const [attackSide, setAttackSide] = useState<'left' | 'right' | null>(null);
   const [screenShake, setScreenShake] = useState(false);
   const [ko, setKo] = useState<'left' | 'right' | null>(null);
+  const [koPhase, setKoPhase] = useState<'impact' | 'cinematic' | 'announce' | 'settle' | null>(null);
   const [introPhase, setIntroPhase] = useState(false);
   const timersRef = useRef<NodeJS.Timeout[]>([]);
 
@@ -98,12 +99,20 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
 
     if (turn.hpLeft <= 0 || turn.hpRight <= 0) {
       const t6 = setTimeout(() => {
-        setKo(turn.hpLeft <= 0 ? 'left' : 'right');
-        setDone(true);
+        const koSide = turn.hpLeft <= 0 ? 'left' as const : 'right' as const;
+        setKo(koSide);
         setRunning(false);
         const winnerFighter = turn.hpLeft <= 0 ? right : left;
         const loserFighter = turn.hpLeft <= 0 ? left : right;
         callbacks?.onKo?.(winnerFighter.name, loserFighter.name);
+
+        // KO phase sequencing
+        setKoPhase('impact');
+        const t_cine = setTimeout(() => setKoPhase('cinematic'), 500);
+        const t_ann = setTimeout(() => setKoPhase('announce'), 1500);
+        const t_settle = setTimeout(() => { setKoPhase('settle'); setDone(true); }, 3000);
+        timersRef.current.push(t_cine, t_ann, t_settle);
+
         // Fade out ambience after KO
         setTimeout(() => callbacks?.onFightEnd?.(), 3000);
       }, 800);
@@ -125,6 +134,7 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
     setHpRight(100);
     setLog([]);
     setKo(null);
+    setKoPhase(null);
     setShowDamage(null);
     setHitSide(null);
     setAttackSide(null);
@@ -147,7 +157,7 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
 
   return {
     turns, turnIndex, running, done, hpLeft, hpRight, log,
-    showDamage, hitSide, attackSide, screenShake, ko, introPhase,
+    showDamage, hitSide, attackSide, screenShake, ko, koPhase, introPhase,
     startFight, winner,
   };
 }

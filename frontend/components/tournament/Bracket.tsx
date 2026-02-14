@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { TournamentMatch } from '@/lib/types';
 import MatchCard from './MatchCard';
+import { TrophyIcon } from '@/components/icons';
 
 export default function Bracket({ matches }: { matches: TournamentMatch[] }) {
   const qf = matches.filter((m) => m.round === 'quarterfinal');
@@ -54,7 +55,7 @@ export default function Bracket({ matches }: { matches: TournamentMatch[] }) {
 
         {/* Final */}
         <div className="flex flex-col">
-          <div className="text-center text-xs uppercase tracking-wider text-amber-500 mb-2 font-bold">🏆 Grand Final</div>
+          <div className="text-center text-xs uppercase tracking-wider text-amber-500 mb-2 font-bold flex items-center justify-center gap-1"><TrophyIcon size={16} /> Grand Final</div>
           {final.map((m) => (
             <motion.div
               key={m.id}
