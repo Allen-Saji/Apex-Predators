@@ -30,7 +30,14 @@ function generateFight(left: Fighter, right: Fighter): Turn[] {
   return turns;
 }
 
-export function useFight(left: Fighter, right: Fighter) {
+export interface FightCallbacks {
+  onFightStart?: (f1Name?: string, f2Name?: string) => void;
+  onAttack?: (damage: number, isCrit: boolean, attackerName?: string, moveName?: string) => void;
+  onKo?: (winnerName?: string, loserName?: string) => void;
+  onFightEnd?: () => void;
+}
+
+export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbacks) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [turnIndex, setTurnIndex] = useState(-1);
   const [running, setRunning] = useState(false);
@@ -79,6 +86,13 @@ export function useFight(left: Fighter, right: Fighter) {
       setHpRight(turn.hpRight);
     }, 350);
 
+    // Sound: attack
+    const t_sfx = setTimeout(() => {
+      const attackerFighter = turn.attacker === 'left' ? left : right;
+      callbacks?.onAttack?.(turn.damage, turn.isCrit, attackerFighter.name, turn.moveName);
+    }, 280);
+    timersRef.current.push(t_sfx);
+
     setLog((prev) => [...prev, turn.text]);
     setTurnIndex(idx);
 
@@ -87,6 +101,11 @@ export function useFight(left: Fighter, right: Fighter) {
         setKo(turn.hpLeft <= 0 ? 'left' : 'right');
         setDone(true);
         setRunning(false);
+        const winnerFighter = turn.hpLeft <= 0 ? right : left;
+        const loserFighter = turn.hpLeft <= 0 ? left : right;
+        callbacks?.onKo?.(winnerFighter.name, loserFighter.name);
+        // Fade out ambience after KO
+        setTimeout(() => callbacks?.onFightEnd?.(), 3000);
       }, 800);
       timersRef.current.push(t6);
     }
@@ -113,13 +132,14 @@ export function useFight(left: Fighter, right: Fighter) {
     // Intro phase
     setIntroPhase(true);
     setRunning(true);
+    callbacks?.onFightStart?.(left.name, right.name);
     const introTimer = setTimeout(() => {
       setIntroPhase(false);
       newFight.forEach((_, i) => {
-        const t = setTimeout(() => playTurn(i, newFight), (i + 1) * 2000);
+        const t = setTimeout(() => playTurn(i, newFight), (i + 1) * 5000);
         timersRef.current.push(t);
       });
-    }, 3000);
+    }, 4000);
     timersRef.current.push(introTimer);
   }, [left, right, playTurn]);
 

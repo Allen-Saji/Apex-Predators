@@ -1,20 +1,59 @@
 'use client';
 
 import Image from 'next/image';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Fighter } from '@/lib/types';
 import { useFight } from '@/hooks/useFight';
+import { useFightSounds } from '@/hooks/useFightSounds';
 import HealthBar from './HealthBar';
 import DamageNumber from './DamageNumber';
-import FightLog from './FightLog';
 import ArenaBackground from './ArenaBackground';
+import CommentaryOverlay, { CommentaryEvent, CommentaryType } from './CommentaryOverlay';
 
 export default function FightViewer({ left, right }: { left: Fighter; right: Fighter }) {
+  const { muted, commentaryOn, onFightStart, onAttack, onKo, onFightEnd, toggleMute, toggleCommentary } = useFightSounds();
+  const [commentaryEvent, setCommentaryEvent] = useState<CommentaryEvent | null>(null);
+  const commentaryIdRef = useRef(0);
+
+  const fireCommentary = useCallback((text: string, type: CommentaryType, subText?: string) => {
+    commentaryIdRef.current += 1;
+    setCommentaryEvent({ id: commentaryIdRef.current, text, type, subText });
+  }, []);
+
+  const clearCommentary = useCallback(() => setCommentaryEvent(null), []);
+
+  const wrappedOnFightStart = useCallback((f1?: string, f2?: string) => {
+    onFightStart(f1, f2);
+    fireCommentary('FIGHT!', 'intro');
+  }, [onFightStart, fireCommentary]);
+
+  const wrappedOnAttack = useCallback((damage: number, isCrit: boolean, attackerName?: string, moveName?: string) => {
+    onAttack(damage, isCrit, attackerName, moveName);
+    const name = (attackerName ?? '').toUpperCase();
+    const move = moveName ?? 'Attack';
+    const hitText = `${name} ► ${move} — ${damage} DMG`;
+    let type: CommentaryType = 'normal';
+    if (isCrit) type = 'crit';
+    else if (damage >= 15) type = 'heavy';
+    else if (damage <= 5) type = 'low';
+    if (type === 'crit') {
+      fireCommentary('CRITICAL HIT', 'crit', hitText);
+    } else {
+      fireCommentary(hitText, type);
+    }
+  }, [onAttack, fireCommentary]);
+
+  const wrappedOnKo = useCallback((winnerName?: string, loserName?: string) => {
+    onKo(winnerName, loserName);
+    fireCommentary('K.O.!', 'ko', `${winnerName?.toUpperCase()} WINS!`);
+  }, [onKo, fireCommentary]);
+
   const {
     turns, turnIndex, running, done, hpLeft, hpRight, log,
     showDamage, hitSide, attackSide, screenShake, ko, introPhase,
     startFight, winner,
-  } = useFight(left, right);
+  } = useFight(left, right, { onFightStart: wrappedOnFightStart, onAttack: wrappedOnAttack, onKo: wrappedOnKo, onFightEnd });
 
   return (
     <div className="relative min-h-[80vh] flex flex-col items-center justify-center p-4">
@@ -144,22 +183,8 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
             </AnimatePresence>
           </div>
 
-          {/* VS / Critical text */}
+          {/* VS */}
           <div className="flex flex-col items-center gap-2">
-            <AnimatePresence>
-              {showDamage?.isCrit && (
-                <motion.div
-                  className="text-yellow-400 font-black text-xl md:text-3xl uppercase"
-                  style={{ textShadow: '0 0 20px rgba(250,204,21,0.6)' }}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  CRITICAL!
-                </motion.div>
-              )}
-            </AnimatePresence>
             {!running && !done && (
               <div className="text-4xl font-black text-gray-700 select-none">VS</div>
             )}
@@ -213,46 +238,26 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
           </div>
         </div>
 
-        {/* KO overlay */}
-        <AnimatePresence>
-          {done && ko && (
-            <motion.div
-              className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-red-900/20"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 0.5, 0] }}
-                transition={{ duration: 0.3 }}
-              />
-              <motion.div
-                className="text-7xl md:text-9xl font-black text-red-500"
-                style={{ textShadow: '0 0 60px rgba(239,68,68,.8)' }}
-                initial={{ scale: 0, rotate: -20 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 12 }}
-              >
-                K.O.!
-              </motion.div>
-              <motion.div
-                className="text-2xl md:text-3xl font-bold text-amber-400 mt-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                🏆 {winner?.name} Wins!
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Commentary overlay */}
+        <CommentaryOverlay event={commentaryEvent} onClear={clearCommentary} />
 
-        {/* Sound toggle (UI only) */}
-        <button className="absolute top-4 right-4 text-gray-600 hover:text-white transition-colors text-xl">
-          🔇
-        </button>
+        {/* Sound toggles */}
+        <div className="absolute top-4 right-4 flex gap-2 z-50">
+          <button
+            onClick={toggleCommentary}
+            className={`transition-colors text-xl ${commentaryOn && !muted ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-400'}`}
+            title={commentaryOn ? 'Disable commentary' : 'Enable commentary'}
+          >
+            🎙️
+          </button>
+          <button
+            onClick={toggleMute}
+            className="text-gray-600 hover:text-white transition-colors text-xl"
+            title={muted ? 'Unmute' : 'Mute'}
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
+        </div>
 
         {/* Buttons */}
         <div className="flex justify-center gap-4 mt-8">
@@ -274,7 +279,6 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
           )}
         </div>
 
-        <FightLog log={log} />
       </motion.div>
     </div>
   );
