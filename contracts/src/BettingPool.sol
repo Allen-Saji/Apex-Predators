@@ -69,7 +69,7 @@ contract BettingPool is IBettingPool, Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => mapping(address => bool)) public claimed;
     // Finding #6: pull pattern for treasury fees
     mapping(uint256 => uint256) public pendingFees;
-    uint256 public totalTrackedBalance; // track ETH that belongs to pools
+    uint256 public totalTrackedBalance; // track MON that belongs to pools
 
     // ── Constructor ─────────────────────────────────────────
     /// @param _registry FighterRegistry address (must not be zero)
@@ -323,9 +323,9 @@ contract BettingPool is IBettingPool, Ownable, Pausable, ReentrancyGuard {
         emit TreasuryFeeClaimed(poolId, fee);
     }
 
-    // ── Finding #10: Withdraw untracked ETH ─────────────────
+    // ── Finding #10: Withdraw untracked MON ─────────────────
 
-    /// @notice Withdraw ETH sent directly to the contract (not part of any pool)
+    /// @notice Withdraw MON sent directly to the contract (not part of any pool)
     /// @param to Address to send surplus to
     function withdrawSurplus(address to) external onlyOwner nonReentrant {
         if (to == address(0)) revert InvalidAddress();
@@ -370,6 +370,6 @@ contract BettingPool is IBettingPool, Ownable, Pausable, ReentrancyGuard {
         return claimed[poolId][user];
     }
 
-    /// @notice Receive function to accept ETH (Finding #10: tracked separately, withdrawable)
+    /// @notice Receive function to accept MON (Finding #10: tracked separately, withdrawable)
     receive() external payable {}
 }
