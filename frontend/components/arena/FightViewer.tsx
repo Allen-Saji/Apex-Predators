@@ -11,6 +11,8 @@ import DamageNumber from './DamageNumber';
 import ArenaBackground from './ArenaBackground';
 import CommentaryOverlay, { CommentaryEvent, CommentaryType } from './CommentaryOverlay';
 import { SkullIcon, MicIcon, SpeakerIcon, SpeakerMuteIcon, FistIcon, RefreshIcon } from '@/components/icons';
+import TrashTalk from './TrashTalk';
+import PostFightReaction from './PostFightReaction';
 
 export default function FightViewer({ left, right }: { left: Fighter; right: Fighter }) {
   const { muted, commentaryOn, onFightStart, onAttack, onKo, onFightEnd, toggleMute, toggleCommentary } = useFightSounds();
@@ -50,11 +52,18 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
     // Don't fire commentary for KO — FightViewer handles it directly
   }, [onKo]);
 
+  const [showTrashTalk, setShowTrashTalk] = useState(true);
+
   const {
     turns, turnIndex, running, done, hpLeft, hpRight, log,
     showDamage, hitSide, attackSide, screenShake, ko, koPhase, introPhase,
     startFight, winner,
   } = useFight(left, right, { onFightStart: wrappedOnFightStart, onAttack: wrappedOnAttack, onKo: wrappedOnKo, onFightEnd });
+
+  const handleStartFight = useCallback(() => {
+    setShowTrashTalk(false);
+    startFight();
+  }, [startFight]);
 
   const isKoActive = koPhase !== null;
   const winnerSide: 'left' | 'right' | null = ko === 'left' ? 'right' : ko === 'right' ? 'left' : null;
@@ -403,7 +412,7 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
         <div className="flex justify-center gap-4 mt-8">
           {!running && !done && !isKoActive && (
             <button
-              onClick={startFight}
+              onClick={handleStartFight}
               className="px-10 py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl text-lg uppercase tracking-wider transition-all hover:scale-105"
             >
               <FistIcon size={20} className="inline-block mr-2" /> Start Fight
@@ -412,7 +421,7 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
           <AnimatePresence>
             {koPhase === 'settle' && (
               <motion.button
-                onClick={startFight}
+                onClick={handleStartFight}
                 className="px-10 py-4 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl text-lg uppercase tracking-wider transition-all hover:scale-105 z-40 relative"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -425,6 +434,37 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
         </div>
 
       </motion.div>
+
+      {/* Pre-fight trash talk */}
+      <AnimatePresence>
+        {showTrashTalk && !running && !done && (
+          <motion.div
+            className="w-full max-w-4xl relative z-10"
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <TrashTalk left={left} right={right} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Post-fight reactions */}
+      <AnimatePresence>
+        {koPhase === 'settle' && winnerFighter && (
+          <motion.div
+            className="w-full max-w-4xl relative z-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+          >
+            <PostFightReaction
+              winner={winnerSide === 'left' ? left : right}
+              loser={winnerSide === 'left' ? right : left}
+              method="knockout"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
