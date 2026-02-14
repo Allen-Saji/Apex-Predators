@@ -2,8 +2,10 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { BellIcon, LightningIcon, ImpactIcon } from '@/components/icons';
 
 export type CommentaryType = 'intro' | 'normal' | 'heavy' | 'crit' | 'low' | 'ko';
+// Note: 'ko' type is no longer handled here — FightViewer manages KO presentation directly
 
 export interface CommentaryEvent {
   id: number;
@@ -26,8 +28,8 @@ export default function CommentaryOverlay({ event, onClear }: { event: Commentar
 
   useEffect(() => {
     if (!event) { setVisible(null); return; }
+    if (event.type === 'ko') return; // KO handled by FightViewer
     setVisible(event);
-    if (event.type === 'ko') return;
     const t = setTimeout(() => { setVisible(null); onClear(); }, DURATIONS[event.type]);
     return () => clearTimeout(t);
   }, [event, onClear]);
@@ -69,7 +71,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
             className="text-5xl sm:text-7xl md:text-9xl font-black uppercase text-red-500 select-none"
             style={{ textShadow: '0 0 40px rgba(220,38,38,0.8), 0 0 80px rgba(220,38,38,0.4)' }}
           >
-            🔔 FIGHT!
+            <BellIcon size={40} className="inline-block mr-2" /> FIGHT!
           </span>
         </motion.div>
       );
@@ -91,7 +93,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
             animate={{ scale: [0, 1.15, 1] }}
             transition={{ type: 'spring', stiffness: 250, damping: 12 }}
           >
-            🏆 K.O.!
+            K.O.!
           </motion.div>
           {event.subText && (
             <motion.div
@@ -136,7 +138,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
     case 'crit':
       return (
         <motion.div
-          className="absolute inset-0 flex flex-col items-center justify-center"
+          className="absolute bottom-4 sm:bottom-6 left-0 right-0 flex flex-col items-center"
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: [0, 1, 0.8, 1], scale: [0, 1.2, 1] }}
           exit={{ opacity: 0 }}
@@ -149,7 +151,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
               textShadow: '0 0 30px rgba(255,215,0,0.8), 0 0 60px rgba(255,215,0,0.4)',
             }}
           >
-            ⚡ CRITICAL HIT ⚡
+            <LightningIcon size={32} className="inline-block" /> CRITICAL HIT <LightningIcon size={32} className="inline-block" />
           </span>
           {event.subText && (
             <motion.div
@@ -171,7 +173,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
     case 'heavy':
       return (
         <motion.div
-          className="absolute bottom-16 sm:bottom-20 left-0 right-0 flex justify-center"
+          className="absolute bottom-4 sm:bottom-6 left-0 right-0 flex justify-center"
           initial={{ x: '-100%' }}
           animate={{ x: ['-100%', '0%', '0%', '0%'] }}
           exit={{ x: '100%' }}
@@ -186,7 +188,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
               className="text-lg sm:text-2xl md:text-3xl font-black uppercase select-none"
               style={{ color: '#FFD700', textShadow: '0 0 15px rgba(255,215,0,0.5)' }}
             >
-              💥 {event.text}
+              <ImpactIcon size={24} className="inline-block mr-1" /> {event.text}
             </span>
           </motion.div>
         </motion.div>
@@ -195,7 +197,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
     case 'low':
       return (
         <motion.div
-          className="absolute bottom-16 sm:bottom-20 left-0 right-0 flex justify-center"
+          className="absolute bottom-4 sm:bottom-6 left-0 right-0 flex justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.6 }}
           exit={{ opacity: 0 }}
@@ -212,7 +214,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
     default: // normal
       return (
         <motion.div
-          className="absolute bottom-16 sm:bottom-20 left-0 right-0 flex justify-center"
+          className="absolute bottom-4 sm:bottom-6 left-0 right-0 flex justify-center"
           initial={{ x: '-100%' }}
           animate={{ x: ['-100%', '0%', '0%', '0%'] }}
           exit={{ x: '100%' }}
