@@ -18,7 +18,7 @@ export default function FighterProfile({ fighter }: { fighter: Fighter }) {
           className="relative aspect-square rounded-2xl overflow-hidden border-2"
           style={{ borderColor: fighter.color }}
         >
-          <Image src={fighter.image} alt={fighter.name} fill className="object-cover" priority />
+          <Image src={fighter.image} alt={fighter.name} fill className="object-cover" style={{ objectPosition: fighter.focalPoint || "center center" }} priority />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-4 left-4">
             <span

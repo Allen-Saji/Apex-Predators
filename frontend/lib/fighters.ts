@@ -22,7 +22,7 @@ export const fighters: Fighter[] = [
       { name: 'Maul', minDamage: 14, maxDamage: 24 },
     ],
     specialTrait: { name: 'Heavy Hands', description: '+10% damage on final blow' },
-    focalPoint: 'center 15%',
+    focalPoint: 'center 10%',
   },
   {
     id: 'fang',
@@ -45,7 +45,7 @@ export const fighters: Fighter[] = [
       { name: 'Shadow Dash', minDamage: 9, maxDamage: 17 },
     ],
     specialTrait: { name: 'Pack Instinct', description: '+5% damage when HP > 50%' },
-    focalPoint: 'center 15%',
+    focalPoint: 'center 8%',
   },
   {
     id: 'talon',
@@ -114,7 +114,7 @@ export const fighters: Fighter[] = [
       { name: 'King\'s Judgment', minDamage: 13, maxDamage: 21 },
     ],
     specialTrait: { name: "King's Roar", description: 'First attack of fight guaranteed +15% damage' },
-    focalPoint: 'center 10%',
+    focalPoint: 'center 30%',
   },
   {
     id: 'venom',
