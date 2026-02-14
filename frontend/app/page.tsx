@@ -7,7 +7,7 @@ import FighterShowcase from '@/components/fighters/FighterShowcase';
 import StatCard from '@/components/common/StatCard';
 import { fighters } from '@/lib/fighters';
 import { platformStats } from '@/lib/mock-data';
-import { SwordsIcon, DiceIcon, CoinIcon, FlameIcon } from '@/components/icons';
+import { PunchIcon, SwordsIcon, CoinIcon, MuscleIcon } from '@/components/icons';
 
 export default function HomePage() {
   const nextFight = { left: fighters[3], right: fighters[6] }; // Jaws vs Kong
@@ -51,17 +51,17 @@ export default function HomePage() {
       {/* Stats */}
       <section>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Fights" value={platformStats.totalFights} icon={<SwordsIcon size={28} />} />
-          <StatCard label="Total Bets" value={platformStats.totalBets.toLocaleString()} icon={<DiceIcon size={28} />} />
+          <StatCard label="Total Fights" value={platformStats.totalFights} icon={<PunchIcon size={28} />} />
+          <StatCard label="Total Bets" value={platformStats.totalBets.toLocaleString()} icon={<SwordsIcon size={28} />} />
           <StatCard label="Volume ($APEX)" value="28.4K" icon={<CoinIcon size={28} />} />
-          <StatCard label="Active Fighters" value={platformStats.activeFighters} icon={<SwordsIcon size={28} />} />
+          <StatCard label="Active Fighters" value={platformStats.activeFighters} icon={<MuscleIcon size={28} />} />
         </div>
       </section>
 
       {/* Upcoming Fight */}
       <section>
         <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
-          <FlameIcon size={24} className="inline-block mr-2" /> Next Fight
+          <span className="relative inline-flex mr-3 h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>Next Fight
         </h2>
         <motion.div
           className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"

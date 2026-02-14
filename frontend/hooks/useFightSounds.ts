@@ -64,11 +64,7 @@ export function useFightSounds() {
     }, 300);
     if (winnerName && loserName) {
       const c = getCommentary();
-      // Wait for bell to hit, then deliver KO commentary
-      setTimeout(() => {
-        c.stop(); // Clear any remaining attack commentary
-        setTimeout(() => c.speak(getKoCommentary(winnerName, loserName), 'high'), 200);
-      }, 800);
+      setTimeout(() => c.speak(getKoCommentary(winnerName, loserName), 'high'), 600);
     }
   }, [getEngine, getCommentary]);
 

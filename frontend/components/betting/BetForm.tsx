@@ -32,31 +32,41 @@ export default function BetForm({
 
   return (
     <div className="space-y-6">
-      {/* Fighter selection */}
-      <div className="grid grid-cols-2 gap-4">
-        {[fighter1, fighter2].map((f) => (
+      {/* Face-off layout */}
+      <div className="flex items-center justify-center gap-4">
+        {[fighter1, fighter2].map((f, i) => (
           <motion.button
             key={f.id}
             onClick={() => setSelected(f.id)}
-            className={`p-4 rounded-xl border-2 transition-all text-left ${
+            className={`flex-1 flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all ${
               selected === f.id
-                ? 'border-amber-500 bg-amber-500/10'
+                ? 'border-red-500 bg-red-500/10'
                 : 'border-white/10 bg-white/5 hover:border-white/20'
             }`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 relative rounded-lg overflow-hidden flex-shrink-0">
-                <Image src={f.image} alt={f.name} fill className="object-cover" />
-              </div>
-              <div>
-                <div className="font-black uppercase text-white">{f.name}</div>
-                <div className="text-xs text-gray-500">{f.animal}</div>
-              </div>
+            <div className="w-20 h-20 md:w-28 md:h-28 relative rounded-xl overflow-hidden border-2" style={{ borderColor: f.color }}>
+              <Image
+                src={f.image}
+                alt={f.name}
+                fill
+                className="object-cover"
+                style={{ objectPosition: f.focalPoint || 'center center' }}
+              />
+            </div>
+            <div className="text-center">
+              <div className="font-black uppercase tracking-wider text-white">{f.name}</div>
+              <div className="text-xs text-gray-500">{f.animal}</div>
             </div>
           </motion.button>
         ))}
+        <div className="absolute text-2xl font-black text-red-500 pointer-events-none" style={{ position: 'relative', flex: 'none', margin: '0 -1rem' }}>
+        </div>
+      </div>
+      {/* VS overlay */}
+      <div className="flex justify-center -mt-10 mb-2">
+        <span className="text-2xl font-black text-red-500 uppercase tracking-widest">VS</span>
       </div>
 
       {/* Amount */}
@@ -99,7 +109,7 @@ export default function BetForm({
           <div className="mt-4 p-3 bg-white/5 rounded-lg">
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">Potential Payout</span>
-              <span className="font-bold text-green-400 font-mono">{payout.toFixed(2)} MON</span>
+              <span className="font-bold text-red-400 font-mono">{payout.toFixed(2)} MON</span>
             </div>
             <div className="flex justify-between text-xs mt-1">
               <span className="text-gray-500">Multiplier</span>

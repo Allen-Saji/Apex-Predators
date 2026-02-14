@@ -10,7 +10,7 @@ import HealthBar from './HealthBar';
 import DamageNumber from './DamageNumber';
 import ArenaBackground from './ArenaBackground';
 import CommentaryOverlay, { CommentaryEvent, CommentaryType } from './CommentaryOverlay';
-import { SkullIcon, MicIcon, SpeakerIcon, SpeakerMuteIcon, SwordsIcon, RefreshIcon } from '@/components/icons';
+import { SkullIcon, MicIcon, SpeakerIcon, SpeakerMuteIcon, FistIcon, RefreshIcon } from '@/components/icons';
 
 export default function FightViewer({ left, right }: { left: Fighter; right: Fighter }) {
   const { muted, commentaryOn, onFightStart, onAttack, onKo, onFightEnd, toggleMute, toggleCommentary } = useFightSounds();
@@ -406,7 +406,7 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
               onClick={startFight}
               className="px-10 py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl text-lg uppercase tracking-wider transition-all hover:scale-105"
             >
-              <SwordsIcon size={20} className="inline-block mr-2" /> Start Fight
+              <FistIcon size={20} className="inline-block mr-2" /> Start Fight
             </button>
           )}
           <AnimatePresence>

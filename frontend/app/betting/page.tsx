@@ -34,52 +34,50 @@ export default function BettingPage() {
         <p className="text-gray-400 mb-8">Put your money where your fangs are.</p>
       </motion.div>
 
-      {/* Active fight card */}
-      <div className="space-y-6">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs uppercase tracking-wider text-amber-500 font-bold flex items-center gap-2">
+      <div className="space-y-8">
+        {/* Active fight — cohesive section */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wider text-red-500 font-bold flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              Live · Quarterfinal 4
+              Live — Quarterfinal 4
             </span>
             <span className="text-xs text-gray-500">Betting closes in 2h 15m</span>
           </div>
 
           <OddsDisplay fighter1={fighter1} fighter2={fighter2} pool1={pool1} pool2={pool2} />
 
-          <div className="mt-4">
-            <HypeMeter pool={pool1 + pool2} maxPool={15000} />
-          </div>
-        </div>
+          <HypeMeter pool={pool1 + pool2} maxPool={15000} />
 
-        {!betPlaced ? (
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-            <h2 className="text-lg font-bold text-white mb-4">Choose Your Fighter</h2>
-            <BetForm
-              fighter1={fighter1}
-              fighter2={fighter2}
-              pool1={pool1}
-              pool2={pool2}
-              onPlaceBet={handleBet}
-              isPlacing={isPlacing}
-            />
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white/5 border border-green-500/20 rounded-2xl p-6 text-center"
-          >
-            <div className="text-lg font-bold text-white uppercase tracking-wider">Bet Placed</div>
-            <div className="text-sm text-gray-400 mt-1">Your bet is locked in. Good luck.</div>
-          </motion.div>
-        )}
+          {!betPlaced ? (
+            <div className="border-t border-white/10 pt-6">
+              <h2 className="text-lg font-black uppercase tracking-wider text-white mb-4">Choose Your Fighter</h2>
+              <BetForm
+                fighter1={fighter1}
+                fighter2={fighter2}
+                pool1={pool1}
+                pool2={pool2}
+                onPlaceBet={handleBet}
+                isPlacing={isPlacing}
+              />
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="border-t border-white/10 pt-6 text-center"
+            >
+              <div className="text-lg font-black text-white uppercase tracking-wider">Bet Placed</div>
+              <div className="text-sm text-gray-400 mt-1">Your bet is locked in. Good luck.</div>
+            </motion.div>
+          )}
+        </div>
 
         {/* Past fight with claimable winnings */}
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <span className="text-xs uppercase tracking-wider text-gray-500">Quarterfinal 1 · Completed</span>
+              <span className="text-xs uppercase tracking-wider text-gray-500">Quarterfinal 1 — Completed</span>
               <div className="font-bold text-white mt-1">Kodiak def. Venom — KO Round 6</div>
             </div>
             <span className="text-green-400 text-sm font-bold">You won!</span>

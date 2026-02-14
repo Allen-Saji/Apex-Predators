@@ -17,16 +17,16 @@ export default function HypeMeter({ pool, maxPool }: { pool: number; maxPool: nu
   const level = getHypeLevel(pct);
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div>
       <div className="flex justify-between items-center mb-2">
         <span className="text-xs uppercase tracking-wider text-gray-500">Hype Meter</span>
-        <span className="text-sm font-bold text-amber-400 flex items-center gap-1">{level.icon} {level.label}</span>
+        <span className="text-sm font-bold text-red-400 flex items-center gap-1">{level.icon} {level.label}</span>
       </div>
       <div className="h-4 bg-gray-800 rounded-full overflow-hidden">
         <motion.div
           className="h-full rounded-full"
           style={{
-            background: `linear-gradient(90deg, #dc2626, #fbbf24)`,
+            background: `linear-gradient(90deg, #7f1d1d, #dc2626)`,
           }}
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}

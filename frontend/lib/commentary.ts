@@ -136,7 +136,7 @@ class CommentaryEngine {
       return;
     }
 
-    this.speakNow(text, priority === 'high');
+    this.speakNow(text, false);
   }
 
   private speakNow(text: string, isCrit = false): void {
@@ -148,9 +148,9 @@ class CommentaryEngine {
     this.speaking = true;
     const utterance = new SpeechSynthesisUtterance(text);
     if (this.selectedVoice) utterance.voice = this.selectedVoice;
-    utterance.rate = isCrit ? 1.15 : 1.0;
+    utterance.rate = 1.0;
     utterance.pitch = 0.8;
-    utterance.volume = isCrit ? 1.0 : 0.9;
+    utterance.volume = 0.9;
 
     utterance.onend = () => {
       this.speaking = false;
