@@ -21,8 +21,7 @@ export default function ClaimWinnings({ amount, fightId }: { amount: number; fig
         animate={{ scale: 1, opacity: 1 }}
         className="text-center p-6 bg-green-500/10 border border-green-500/30 rounded-xl"
       >
-        <div className="text-4xl mb-2">🎉</div>
-        <div className="text-green-400 font-bold text-lg">Winnings Claimed!</div>
+        <div className="text-green-400 font-bold text-lg uppercase tracking-wider">Winnings Claimed</div>
         <div className="text-white font-mono font-bold text-2xl mt-1">{amount.toFixed(2)} MON</div>
       </motion.div>
     );

@@ -33,7 +33,7 @@ export default function MatchCard({ match }: { match: TournamentMatch }) {
               <Image src={f1.image} alt={f1.name} fill className="object-cover" />
             </div>
             <span className="font-bold text-sm text-white">{f1.name}</span>
-            {match.winnerId === match.fighter1Id && <span className="text-green-400 text-xs ml-auto">👑</span>}
+            {match.winnerId === match.fighter1Id && <span className="text-green-400 text-xs font-bold ml-auto uppercase">W</span>}
           </>
         ) : (
           <span className="text-gray-600 text-sm italic">TBD</span>
@@ -60,7 +60,7 @@ export default function MatchCard({ match }: { match: TournamentMatch }) {
               <Image src={f2.image} alt={f2.name} fill className="object-cover" />
             </div>
             <span className="font-bold text-sm text-white">{f2.name}</span>
-            {match.winnerId === match.fighter2Id && <span className="text-green-400 text-xs ml-auto">👑</span>}
+            {match.winnerId === match.fighter2Id && <span className="text-green-400 text-xs font-bold ml-auto uppercase">W</span>}
           </>
         ) : (
           <span className="text-gray-600 text-sm italic">TBD</span>

@@ -38,8 +38,9 @@ export default function BettingPage() {
       <div className="space-y-6">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs uppercase tracking-wider text-amber-500 font-bold">
-              🔴 Live · Quarterfinal 4
+            <span className="text-xs uppercase tracking-wider text-amber-500 font-bold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              Live · Quarterfinal 4
             </span>
             <span className="text-xs text-gray-500">Betting closes in 2h 15m</span>
           </div>
@@ -69,9 +70,8 @@ export default function BettingPage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white/5 border border-green-500/20 rounded-2xl p-6 text-center"
           >
-            <div className="text-4xl mb-3">✅</div>
-            <div className="text-lg font-bold text-white">Bet Placed!</div>
-            <div className="text-sm text-gray-400 mt-1">Your bet is locked in. Good luck!</div>
+            <div className="text-lg font-bold text-white uppercase tracking-wider">Bet Placed</div>
+            <div className="text-sm text-gray-400 mt-1">Your bet is locked in. Good luck.</div>
           </motion.div>
         )}
 

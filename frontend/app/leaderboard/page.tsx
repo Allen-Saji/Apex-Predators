@@ -37,7 +37,7 @@ export default function LeaderboardPage() {
           >
             <span className="font-bold">
               {entry.rank <= 3 ? (
-                <span className="text-lg">{['🥇', '🥈', '🥉'][entry.rank - 1]}</span>
+                <span className={"text-lg font-black " + (entry.rank === 1 ? "text-amber-400" : entry.rank === 2 ? "text-gray-300" : "text-amber-700")}>{entry.rank}</span>
               ) : (
                 <span className="text-gray-500 font-mono">#{entry.rank}</span>
               )}
@@ -50,7 +50,7 @@ export default function LeaderboardPage() {
             </span>
             <span className="text-right">
               <span className="inline-flex items-center gap-1 text-amber-400 font-mono font-bold text-sm">
-                🔥 {entry.streak}
+                {entry.streak}
               </span>
             </span>
             <span className="text-right font-mono text-sm text-gray-400">
