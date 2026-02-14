@@ -19,6 +19,7 @@ export interface Fighter {
   damageDealt: number;
   moves: Move[];
   specialTrait: { name: string; description: string };
+  focalPoint?: string; // CSS object-position value e.g. 'center 30%'
 }
 
 export interface Turn {

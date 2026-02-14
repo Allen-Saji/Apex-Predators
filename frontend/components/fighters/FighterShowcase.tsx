@@ -19,7 +19,7 @@ export default function FighterShowcase() {
   const fighter = fighters[current];
 
   return (
-    <div className="relative h-[500px] md:h-[600px] overflow-hidden rounded-2xl border border-white/10">
+    <div className="relative h-[600px] md:h-[700px] overflow-hidden rounded-2xl border border-white/10">
       <AnimatePresence mode="wait">
         <motion.div
           key={fighter.id}
@@ -34,6 +34,7 @@ export default function FighterShowcase() {
             alt={fighter.name}
             fill
             className="object-cover"
+            style={{ objectPosition: fighter.focalPoint || 'center center' }}
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/40 to-transparent" />

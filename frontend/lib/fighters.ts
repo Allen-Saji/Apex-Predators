@@ -22,6 +22,7 @@ export const fighters: Fighter[] = [
       { name: 'Maul', minDamage: 14, maxDamage: 24 },
     ],
     specialTrait: { name: 'Heavy Hands', description: '+10% damage on final blow' },
+    focalPoint: 'center 15%',
   },
   {
     id: 'fang',
@@ -44,6 +45,7 @@ export const fighters: Fighter[] = [
       { name: 'Shadow Dash', minDamage: 9, maxDamage: 17 },
     ],
     specialTrait: { name: 'Pack Instinct', description: '+5% damage when HP > 50%' },
+    focalPoint: 'center 15%',
   },
   {
     id: 'talon',
@@ -66,6 +68,7 @@ export const fighters: Fighter[] = [
       { name: 'Raptor Fury', minDamage: 12, maxDamage: 18 },
     ],
     specialTrait: { name: 'Aerial Dodge', description: '5% base dodge chance' },
+    focalPoint: 'center 28%',
   },
   {
     id: 'jaws',
@@ -88,6 +91,7 @@ export const fighters: Fighter[] = [
       { name: 'Swamp Slam', minDamage: 11, maxDamage: 19 },
     ],
     specialTrait: { name: 'Death Roll', description: 'If attack crits, opponent skips next turn' },
+    focalPoint: 'center 25%',
   },
   {
     id: 'mane',
@@ -110,6 +114,7 @@ export const fighters: Fighter[] = [
       { name: 'King\'s Judgment', minDamage: 13, maxDamage: 21 },
     ],
     specialTrait: { name: "King's Roar", description: 'First attack of fight guaranteed +15% damage' },
+    focalPoint: 'center 10%',
   },
   {
     id: 'venom',
@@ -132,6 +137,7 @@ export const fighters: Fighter[] = [
       { name: 'Poison Spit', minDamage: 6, maxDamage: 14 },
     ],
     specialTrait: { name: 'Poison', description: 'Each hit applies 2 HP/turn poison for 2 turns' },
+    focalPoint: 'center 12%',
   },
   {
     id: 'kong',
@@ -154,6 +160,7 @@ export const fighters: Fighter[] = [
       { name: 'Kong Crush', minDamage: 15, maxDamage: 25 },
     ],
     specialTrait: { name: 'Berserker', description: '+10% damage when HP < 30%' },
+    focalPoint: 'center 18%',
   },
   {
     id: 'razor',
@@ -176,6 +183,7 @@ export const fighters: Fighter[] = [
       { name: 'Jaws of Death', minDamage: 11, maxDamage: 19 },
     ],
     specialTrait: { name: 'Blood Frenzy', description: '+3% damage for each 10% HP opponent has lost' },
+    focalPoint: 'center 5%',
   },
 ];
 
