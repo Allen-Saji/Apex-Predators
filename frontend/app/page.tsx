@@ -7,6 +7,7 @@ import FighterShowcase from '@/components/fighters/FighterShowcase';
 import StatCard from '@/components/common/StatCard';
 import { fighters } from '@/lib/fighters';
 import { platformStats } from '@/lib/mock-data';
+import { SwordsIcon, DiceIcon, CoinIcon, FlameIcon } from '@/components/icons';
 
 export default function HomePage() {
   const nextFight = { left: fighters[3], right: fighters[6] }; // Jaws vs Kong
@@ -50,17 +51,17 @@ export default function HomePage() {
       {/* Stats */}
       <section>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Fights" value={platformStats.totalFights} icon="⚔️" />
-          <StatCard label="Total Bets" value={platformStats.totalBets.toLocaleString()} icon="🎰" />
-          <StatCard label="Volume ($APEX)" value="28.4K" icon="💰" />
-          <StatCard label="Active Fighters" value={platformStats.activeFighters} icon="🦁" />
+          <StatCard label="Total Fights" value={platformStats.totalFights} icon={<SwordsIcon size={28} />} />
+          <StatCard label="Total Bets" value={platformStats.totalBets.toLocaleString()} icon={<DiceIcon size={28} />} />
+          <StatCard label="Volume ($APEX)" value="28.4K" icon={<CoinIcon size={28} />} />
+          <StatCard label="Active Fighters" value={platformStats.activeFighters} icon={<SwordsIcon size={28} />} />
         </div>
       </section>
 
       {/* Upcoming Fight */}
       <section>
         <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
-          🔥 Next Fight
+          <FlameIcon size={24} className="inline-block mr-2" /> Next Fight
         </h2>
         <motion.div
           className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
@@ -69,7 +70,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center gap-3 flex-1">
               <div className="w-20 h-20 md:w-28 md:h-28 relative rounded-xl overflow-hidden border-2" style={{ borderColor: nextFight.left.color }}>
-                <Image src={nextFight.left.image} alt={nextFight.left.name} fill className="object-cover" />
+                <Image src={nextFight.left.image} alt={nextFight.left.name} fill className="object-cover" style={{ objectPosition: nextFight.left.focalPoint || "center center" }} />
               </div>
               <div className="text-center">
                 <div className="font-black uppercase text-white">{nextFight.left.name}</div>
@@ -88,7 +89,7 @@ export default function HomePage() {
             </div>
             <div className="flex flex-col items-center gap-3 flex-1">
               <div className="w-20 h-20 md:w-28 md:h-28 relative rounded-xl overflow-hidden border-2" style={{ borderColor: nextFight.right.color }}>
-                <Image src={nextFight.right.image} alt={nextFight.right.name} fill className="object-cover" />
+                <Image src={nextFight.right.image} alt={nextFight.right.name} fill className="object-cover" style={{ objectPosition: nextFight.right.focalPoint || "center center" }} />
               </div>
               <div className="text-center">
                 <div className="font-black uppercase text-white">{nextFight.right.name}</div>
@@ -114,7 +115,7 @@ export default function HomePage() {
                 className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group cursor-pointer"
                 whileHover={{ scale: 1.08, borderColor: f.color }}
               >
-                <Image src={f.image} alt={f.name} fill className="object-cover group-hover:scale-110 transition-transform duration-300" />
+                <Image src={f.image} alt={f.name} fill className="object-cover group-hover:scale-110 transition-transform duration-300" style={{ objectPosition: f.focalPoint || "center center" }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                 <div className="absolute bottom-1.5 left-1.5 right-1.5 text-center">
                   <div className="text-[10px] md:text-xs font-bold uppercase text-white truncate">{f.name}</div>

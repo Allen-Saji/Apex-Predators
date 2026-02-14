@@ -20,11 +20,10 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl">🦁</span>
+        <Link href="/" className="flex items-center gap-1.5">
           <span className="font-black text-xl tracking-tight">
-            <span className="text-red-500">APEX</span>{' '}
-            <span className="text-white">PREDATORS</span>
+            <span className="text-red-600">APEX</span>{' '}
+            <span className="text-white/90">PREDATORS</span>
           </span>
         </Link>
 

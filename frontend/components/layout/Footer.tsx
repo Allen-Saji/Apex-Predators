@@ -3,13 +3,10 @@ export default function Footer() {
     <footer className="border-t border-white/5 bg-[#0a0a0a] py-8">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🦁</span>
-            <span className="font-black text-sm tracking-tight">
-              <span className="text-red-500">APEX</span>{' '}
-              <span className="text-gray-400">PREDATORS</span>
-            </span>
-          </div>
+          <span className="font-black text-sm tracking-tight">
+            <span className="text-red-600">APEX</span>{' '}
+            <span className="text-gray-400">PREDATORS</span>
+          </span>
           <p className="text-xs text-gray-600">
             Built on Monad · Only the strongest survive
           </p>
