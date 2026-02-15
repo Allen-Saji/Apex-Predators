@@ -1,21 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useAccount } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import WalletConnect from '@/components/common/WalletConnect';
+import { useOwner } from '@/hooks/useContracts';
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: '/', label: 'Home' },
   { href: '/fighters', label: 'Fighters' },
-  { href: '/arena/demo', label: 'Arena' },
-  { href: '/tournament', label: 'Tournament' },
+  { href: '/arena', label: 'Arena' },
   { href: '/betting', label: 'Betting' },
-  { href: '/leaderboard', label: 'Leaderboard' },
 ];
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { address } = useAccount();
+  const { data: owner } = useOwner();
+  const isOwner = address && owner && address.toLowerCase() === owner.toLowerCase();
+  const navItems = useMemo(
+    () => isOwner ? [...BASE_NAV_ITEMS, { href: '/admin', label: 'Admin' }] : BASE_NAV_ITEMS,
+    [isOwner],
+  );
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -28,7 +35,7 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -68,7 +75,7 @@ export default function Header() {
             className="md:hidden overflow-hidden bg-[#111] border-b border-white/5"
           >
             <div className="px-4 py-4 flex flex-col gap-3">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

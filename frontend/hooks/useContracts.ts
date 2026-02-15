@@ -122,6 +122,25 @@ export function useClaimWinnings() {
   return { claim, isPending, isSuccess, error, txHash: data };
 }
 
+export function useHasClaimed(poolId: bigint | undefined) {
+  const { address } = useAccount();
+  return useReadContract({
+    address: CONTRACTS.bettingPool,
+    abi: BETTING_POOL_ABI,
+    functionName: 'hasClaimed',
+    args: poolId !== undefined && address ? [poolId, address] : undefined,
+    query: { enabled: poolId !== undefined && !!address },
+  });
+}
+
+export function useOwner() {
+  return useReadContract({
+    address: CONTRACTS.bettingPool,
+    abi: BETTING_POOL_ABI,
+    functionName: 'owner',
+  });
+}
+
 // ─── Fight Resolver ─────────────────────────────────────────────────
 
 export function useFightCount() {
