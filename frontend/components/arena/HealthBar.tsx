@@ -15,6 +15,7 @@ export default function HealthBar({ hp, maxHp, reverse }: { hp: number; maxHp: n
         <motion.div
           className="h-full rounded-full"
           style={{ backgroundColor: hpColor(pct) }}
+          initial={false}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
         />

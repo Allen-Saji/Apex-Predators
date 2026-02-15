@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Fighter } from '@/lib/types';
@@ -10,14 +10,18 @@ export default function PostFightReaction({
   winner,
   loser,
   method,
+  onLoaded,
 }: {
   winner: Fighter;
   loser: Fighter;
   method: string;
+  onLoaded?: () => void;
 }) {
   const [winnerText, setWinnerText] = useState<string | null>(null);
   const [loserText, setLoserText] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const onLoadedRef = useRef(onLoaded);
+  onLoadedRef.current = onLoaded;
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +42,10 @@ export default function PostFightReaction({
           setLoserText('...');
         }
       } finally {
-        if (!cancelled) setLoaded(true);
+        if (!cancelled) {
+          setLoaded(true);
+          onLoadedRef.current?.();
+        }
       }
     }
 
@@ -49,12 +56,12 @@ export default function PostFightReaction({
   if (!loaded) return null;
 
   return (
-    <div className="w-full max-w-3xl mx-auto mt-8">
-      <div className="text-center mb-6">
+    <div className="w-full max-w-3xl mx-auto">
+      <div className="text-center md:text-left mb-4">
         <div className="text-xs uppercase tracking-[0.3em] text-gray-500">Post-Fight Reactions</div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="flex flex-col gap-4">
         {/* Winner card */}
         <AnimatePresence>
           {winnerText && (

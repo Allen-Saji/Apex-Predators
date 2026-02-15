@@ -65,15 +65,7 @@ export default function ArenaPage() {
   if (watching && fighter1 && fighter2) {
     return (
       <div className="min-h-screen">
-        <div className="absolute top-20 left-4 z-50">
-          <button
-            onClick={() => setWatching(false)}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-bold rounded-lg transition-colors"
-          >
-            Back to Results
-          </button>
-        </div>
-        <FightViewer left={fighter1} right={fighter2} />
+        <FightViewer left={fighter1} right={fighter2} onBack={() => setWatching(false)} />
       </div>
     );
   }

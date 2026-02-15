@@ -31,7 +31,7 @@ function generateFight(left: Fighter, right: Fighter): Turn[] {
 }
 
 export interface FightCallbacks {
-  onFightStart?: (f1Name?: string, f2Name?: string) => void;
+  onFightStart?: (f1Name?: string, f2Name?: string, f1Animal?: string, f2Animal?: string) => void;
   onAttack?: (damage: number, isCrit: boolean, attackerName?: string, moveName?: string) => void;
   onKo?: (winnerName?: string, loserName?: string) => void;
   onFightEnd?: () => void;
@@ -142,11 +142,19 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
     // Intro phase
     setIntroPhase(true);
     setRunning(true);
-    callbacks?.onFightStart?.(left.name, right.name);
+    callbacks?.onFightStart?.(left.name, right.name, left.animal, right.animal);
     const introTimer = setTimeout(() => {
       setIntroPhase(false);
-      newFight.forEach((_, i) => {
-        const t = setTimeout(() => playTurn(i, newFight), (i + 1) * 5000);
+      // Variable delays: small hits play fast, big hits need time for commentary
+      let cumulative = 0;
+      newFight.forEach((turn, i) => {
+        let delay: number;
+        if (turn.isCrit) delay = 7500;
+        else if (turn.damage >= 15) delay = 6500;
+        else if (turn.damage >= 8) delay = 5000;
+        else delay = 3500;
+        cumulative += delay;
+        const t = setTimeout(() => playTurn(i, newFight), cumulative);
         timersRef.current.push(t);
       });
     }, 4000);
