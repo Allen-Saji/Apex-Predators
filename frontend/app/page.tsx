@@ -4,14 +4,120 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import FighterShowcase from '@/components/fighters/FighterShowcase';
-import StatCard from '@/components/common/StatCard';
 import { fighters } from '@/lib/fighters';
-import { platformStats } from '@/lib/mock-data';
-import { PunchIcon, SwordsIcon, CoinIcon, MuscleIcon } from '@/components/icons';
+import { useArenaState, FightOutcome } from '@/hooks/useArenaState';
+
+function NextFightSection() {
+  const { pool, fighter1, fighter2, status, fight } = useArenaState();
+
+  if (status === 'no-pools' || !fighter1 || !fighter2) return null;
+
+  // Resolved — show result
+  if (status === 'resolved' && pool) {
+    const winner = pool.winnerId === pool.fighter1Id ? fighter1 : fighter2;
+    const outcomeLabel = fight?.result.outcome === FightOutcome.KO ? 'KO' : 'Decision';
+    return (
+      <section>
+        <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
+          Latest Result
+        </h2>
+        <motion.div
+          className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
+          whileHover={{ borderColor: 'rgba(220,38,38,0.3)' }}
+        >
+          <div className="flex items-center justify-between">
+            <FighterThumb fighter={fighter1} isWinner={pool.winnerId === pool.fighter1Id} />
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
+              <span className="text-xs text-green-400 uppercase font-bold">{winner.name} wins &middot; {outcomeLabel}</span>
+              <Link
+                href="/arena"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+              >
+                Watch Replay
+              </Link>
+            </div>
+            <FighterThumb fighter={fighter2} isWinner={pool.winnerId === pool.fighter2Id} />
+          </div>
+        </motion.div>
+      </section>
+    );
+  }
+
+  // Closed — fight in progress
+  if (status === 'closed') {
+    return (
+      <section>
+        <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
+          <span className="relative inline-flex mr-3 h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span></span>Fight In Progress
+        </h2>
+        <motion.div
+          className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
+          whileHover={{ borderColor: 'rgba(220,38,38,0.3)' }}
+        >
+          <div className="flex items-center justify-between">
+            <FighterThumb fighter={fighter1} />
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
+              <span className="text-xs text-amber-400 uppercase">In progress...</span>
+            </div>
+            <FighterThumb fighter={fighter2} />
+          </div>
+        </motion.div>
+      </section>
+    );
+  }
+
+  // Open — betting available
+  const closesAt = pool ? new Date(pool.closesAt * 1000) : null;
+  return (
+    <section>
+      <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
+        <span className="relative inline-flex mr-3 h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>Next Fight
+      </h2>
+      <motion.div
+        className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
+        whileHover={{ borderColor: 'rgba(220,38,38,0.3)' }}
+      >
+        <div className="flex items-center justify-between">
+          <FighterThumb fighter={fighter1} />
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
+            {closesAt && (
+              <span className="text-xs text-gray-500 uppercase">
+                Betting closes {closesAt.toLocaleTimeString()}
+              </span>
+            )}
+            <Link
+              href="/betting"
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+            >
+              Bet Now
+            </Link>
+          </div>
+          <FighterThumb fighter={fighter2} />
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+function FighterThumb({ fighter, isWinner }: { fighter: { name: string; image: string; color: string; wins: number; losses: number; focalPoint?: string }; isWinner?: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-3 flex-1">
+      <div className={`w-20 h-20 md:w-28 md:h-28 relative rounded-xl overflow-hidden border-2 ${isWinner ? 'ring-2 ring-green-500' : ''}`} style={{ borderColor: fighter.color }}>
+        <Image src={fighter.image} alt={fighter.name} fill className="object-cover" style={{ objectPosition: fighter.focalPoint || 'center center' }} />
+      </div>
+      <div className="text-center">
+        <div className="font-black uppercase text-white">{fighter.name}</div>
+        <div className="text-xs text-gray-500">{fighter.wins}W-{fighter.losses}L</div>
+        {isWinner && <div className="text-xs text-green-400 font-bold">Winner</div>}
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
-  const nextFight = { left: fighters[3], right: fighters[6] }; // Jaws vs Kong
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-16">
       {/* Hero */}
@@ -31,7 +137,7 @@ export default function HomePage() {
           </p>
           <div className="flex gap-4 justify-center mt-6">
             <Link
-              href="/arena/demo"
+              href="/arena"
               className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all hover:scale-105"
             >
               Watch a Fight
@@ -48,57 +154,7 @@ export default function HomePage() {
         <FighterShowcase />
       </section>
 
-      {/* Stats */}
-      <section>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Fights" value={platformStats.totalFights} icon={<PunchIcon size={28} />} />
-          <StatCard label="Total Bets" value={platformStats.totalBets.toLocaleString()} icon={<SwordsIcon size={28} />} />
-          <StatCard label="Volume ($APEX)" value="28.4K" icon={<CoinIcon size={28} />} />
-          <StatCard label="Active Fighters" value={platformStats.activeFighters} icon={<MuscleIcon size={28} />} />
-        </div>
-      </section>
-
-      {/* Upcoming Fight */}
-      <section>
-        <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
-          <span className="relative inline-flex mr-3 h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>Next Fight
-        </h2>
-        <motion.div
-          className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
-          whileHover={{ borderColor: 'rgba(220,38,38,0.3)' }}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col items-center gap-3 flex-1">
-              <div className="w-20 h-20 md:w-28 md:h-28 relative rounded-xl overflow-hidden border-2" style={{ borderColor: nextFight.left.color }}>
-                <Image src={nextFight.left.image} alt={nextFight.left.name} fill className="object-cover" style={{ objectPosition: nextFight.left.focalPoint || "center center" }} />
-              </div>
-              <div className="text-center">
-                <div className="font-black uppercase text-white">{nextFight.left.name}</div>
-                <div className="text-xs text-gray-500">{nextFight.left.wins}W-{nextFight.left.losses}L</div>
-              </div>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
-              <span className="text-xs text-gray-500 uppercase">Tonight 9PM UTC</span>
-              <Link
-                href="/betting"
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
-              >
-                Bet Now
-              </Link>
-            </div>
-            <div className="flex flex-col items-center gap-3 flex-1">
-              <div className="w-20 h-20 md:w-28 md:h-28 relative rounded-xl overflow-hidden border-2" style={{ borderColor: nextFight.right.color }}>
-                <Image src={nextFight.right.image} alt={nextFight.right.name} fill className="object-cover" style={{ objectPosition: nextFight.right.focalPoint || "center center" }} />
-              </div>
-              <div className="text-center">
-                <div className="font-black uppercase text-white">{nextFight.right.name}</div>
-                <div className="text-xs text-gray-500">{nextFight.right.wins}W-{nextFight.right.losses}L</div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </section>
+      <NextFightSection />
 
       {/* Fighter Grid Preview */}
       <section>
