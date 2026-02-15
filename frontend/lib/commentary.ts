@@ -1,81 +1,91 @@
 'use client';
 
-// --- Text Generation ---
+import SoundEngine from './sound-engine';
+
+// --- Clip Registry ---
+
+export type CommentaryCategory = 'intro' | 'crit' | 'heavy' | 'medium' | 'light' | 'ko' | 'exit';
+
+const CLIP_REGISTRY: Record<CommentaryCategory, string[]> = {
+  intro: [
+    'commentary/commentary-intro-1',
+    'commentary/commentary-intro-2',
+    'commentary/commentary-intro-3',
+  ],
+  crit: [
+    'commentary/commentary-crit-1',
+    'commentary/commentary-crit-2',
+    'commentary/commentary-crit-3',
+    'commentary/commentary-crit-4',
+    'commentary/commentary-crit-5',
+    'commentary/commentary-crit-6',
+  ],
+  heavy: [
+    'commentary/commentary-heavy-1',
+    'commentary/commentary-heavy-2',
+    'commentary/commentary-heavy-3',
+    'commentary/commentary-heavy-4',
+    'commentary/commentary-heavy-5',
+    'commentary/commentary-heavy-6',
+  ],
+  medium: [
+    'commentary/commentary-medium-1',
+    'commentary/commentary-medium-2',
+    'commentary/commentary-medium-3',
+    'commentary/commentary-medium-4',
+    'commentary/commentary-medium-5',
+    'commentary/commentary-medium-6',
+  ],
+  light: [
+    'commentary/commentary-light-1',
+    'commentary/commentary-light-2',
+    'commentary/commentary-light-3',
+    'commentary/commentary-light-4',
+    'commentary/commentary-light-5',
+    'commentary/commentary-light-6',
+  ],
+  ko: [
+    'commentary/commentary-ko-1',
+    'commentary/commentary-ko-2',
+    'commentary/commentary-ko-3',
+    'commentary/commentary-ko-4',
+    'commentary/commentary-ko-5',
+    'commentary/commentary-ko-6',
+  ],
+  exit: [
+    'commentary/commentary-exit-1',
+    'commentary/commentary-exit-2',
+    'commentary/commentary-exit-3',
+    'commentary/commentary-exit-4',
+    'commentary/commentary-exit-5',
+    'commentary/commentary-exit-6',
+  ],
+};
+
+/** Builds the clip key for a fighter-move call, e.g. "commentary/commentary-move-kodiak-heavy-swipe" */
+export function moveClipKey(fighterName: string, moveName: string): string {
+  const slug = `${fighterName}-${moveName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
+  return `commentary/commentary-move-${slug}`;
+}
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function getIntroCommentary(f1: string, f2: string): string {
-  return pick([
-    `Ladies and gentlemen! In the red corner... ${f1}! And in the blue corner... ${f2}! Let's get ready to rumble!`,
-    `Welcome to the jungle! Tonight, ${f1} faces off against ${f2}! This is going to be a war!`,
-    `The crowd is going wild! ${f1} versus ${f2}! Two apex predators, only one walks away!`,
-  ]);
-}
+// --- Commentary Engine (pre-recorded clips) ---
 
-export function getAttackCommentary(attacker: string, move: string, damage: number, isCrit: boolean): string {
-  if (isCrit) {
-    return pick([
-      `OH! CRITICAL HIT! What a ${move} by ${attacker}! ${damage} damage!`,
-      `UNBELIEVABLE! ${attacker} connects with a devastating ${move}! Critical hit for ${damage}!`,
-      `OH MY GOD! ${attacker} with a bone-crushing ${move}! ${damage} damage! That's gonna leave a mark!`,
-      `THE CROWD GOES WILD! Critical ${move} from ${attacker}! ${damage} damage! What a shot!`,
-      `WHAT A HIT! ${attacker} lands a brutal ${move}! ${damage} damage on the critical!`,
-      `BAM! ${attacker} absolutely DESTROYS with that ${move}! ${damage} critical damage!`,
-    ]);
-  }
-  if (damage >= 15) {
-    return pick([
-      `${attacker} lands a devastating ${move}! ${damage} damage!`,
-      `BOOM! ${attacker} connects with a massive ${move}! ${damage} damage!`,
-      `What a shot! ${attacker} hammers home that ${move} for ${damage}!`,
-      `${attacker} unleashes a powerful ${move}! ${damage} damage! That had to hurt!`,
-      `Huge ${move} from ${attacker}! ${damage} damage! The crowd feels that one!`,
-      `${attacker} with a thunderous ${move}! ${damage} damage!`,
-    ]);
-  }
-  if (damage <= 5) {
-    return pick([
-      `${attacker} throws a ${move}, but only grazes for ${damage}.`,
-      `A glancing ${move} from ${attacker}. Just ${damage} damage.`,
-      `${attacker} with a ${move}, barely connects. ${damage} damage.`,
-      `Not much behind that ${move} from ${attacker}. ${damage} damage.`,
-      `${attacker} tries a ${move}, but it's partially blocked. ${damage}.`,
-      `A light ${move} from ${attacker}. ${damage} damage, nothing to worry about.`,
-    ]);
-  }
-  return pick([
-    `${attacker} lands a ${move}! ${damage} damage!`,
-    `Nice ${move} from ${attacker}! ${damage} damage!`,
-    `${attacker} connects with a solid ${move}! ${damage}!`,
-    `Good ${move} by ${attacker}! That's ${damage} damage!`,
-    `${attacker} strikes with a ${move}! ${damage} damage!`,
-    `A clean ${move} from ${attacker}! ${damage} damage on the board!`,
-  ]);
-}
-
-export function getKoCommentary(winner: string, loser: string): string {
-  return pick([
-    `IT'S OVER! ${winner} knocks out ${loser}! What a fight!`,
-    `AND IT'S DONE! ${winner} is victorious! ${loser} is down for the count!`,
-    `KNOCKOUT! ${winner} puts ${loser} away! What a performance!`,
-    `${loser} hits the canvas! ${winner} wins by knockout! Incredible!`,
-    `THE FIGHT IS OVER! ${winner} destroys ${loser}! Absolute domination!`,
-    `DOWN GOES ${loser}! ${winner} takes the victory! What a battle!`,
-  ]);
-}
-
-// --- Speech Engine ---
+type QueueEntry =
+  | { type: 'category'; category: CommentaryCategory; priority: 'normal' | 'high' }
+  | { type: 'clip'; clipKey: string; priority: 'normal' | 'high' };
 
 class CommentaryEngine {
   private static instance: CommentaryEngine | null = null;
   private enabled = true;
-  private queue: Array<{ text: string; priority: 'normal' | 'high' }> = [];
-  private speaking = false;
-  private selectedVoice: SpeechSynthesisVoice | null = null;
-  private voiceLoaded = false;
-  private warmedUp = false;
+  private queue: QueueEntry[] = [];
+  private playing = false;
+  private currentSource: AudioBufferSourceNode | null = null;
+  private cache = new Map<string, AudioBuffer>();
+  private preloaded = false;
 
   static getInstance(): CommentaryEngine {
     if (!CommentaryEngine.instance) {
@@ -84,93 +94,173 @@ class CommentaryEngine {
     return CommentaryEngine.instance;
   }
 
-  private loadVoice(): void {
-    if (this.voiceLoaded || typeof window === 'undefined' || !window.speechSynthesis) return;
-    const tryLoad = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length === 0) return false;
-      this.voiceLoaded = true;
-      const english = voices.filter(v => v.lang.startsWith('en'));
-      const preferred = english.find(v =>
-        /male|daniel|james|george|david|aaron|fred/i.test(v.name)
-      );
-      this.selectedVoice = preferred || english[0] || voices[0];
-      return true;
-    };
-    if (tryLoad()) return;
-    // Listen for voiceschanged
-    window.speechSynthesis.addEventListener('voiceschanged', tryLoad, { once: true });
-    // Fallback retry after 1 second
-    setTimeout(() => {
-      if (!this.voiceLoaded) tryLoad();
-    }, 1000);
+  async warmup(): Promise<void> {
+    if (this.preloaded) return;
+
+    const engine = SoundEngine.getInstance();
+    const ctx = engine.getContext();
+
+    // Collect all clip keys: category clips + all move clips
+    const allClips = Object.values(CLIP_REGISTRY).flat();
+
+    // Discover move clips by fetching known fighters × moves
+    // We eagerly load all commentary-move-* files that exist
+    const moveClips = [
+      // Kodiak
+      'commentary/commentary-move-kodiak-heavy-swipe',
+      'commentary/commentary-move-kodiak-bear-hug',
+      'commentary/commentary-move-kodiak-skull-crush',
+      'commentary/commentary-move-kodiak-ground-slam',
+      'commentary/commentary-move-kodiak-maul',
+      // Fang
+      'commentary/commentary-move-fang-fang-strike',
+      'commentary/commentary-move-fang-lunge-bite',
+      'commentary/commentary-move-fang-pack-fury',
+      'commentary/commentary-move-fang-throat-rip',
+      'commentary/commentary-move-fang-shadow-dash',
+      // Talon
+      'commentary/commentary-move-talon-talon-slash',
+      'commentary/commentary-move-talon-dive-bomb',
+      'commentary/commentary-move-talon-wing-buffet',
+      'commentary/commentary-move-talon-sky-strike',
+      'commentary/commentary-move-talon-raptor-fury',
+      // Jaws
+      'commentary/commentary-move-jaws-death-roll',
+      'commentary/commentary-move-jaws-tail-whip',
+      'commentary/commentary-move-jaws-jaw-clamp',
+      'commentary/commentary-move-jaws-ambush-strike',
+      'commentary/commentary-move-jaws-swamp-slam',
+      // Mane
+      'commentary/commentary-move-mane-royal-strike',
+      'commentary/commentary-move-mane-lions-roar',
+      'commentary/commentary-move-mane-pride-fury',
+      'commentary/commentary-move-mane-mane-whip',
+      'commentary/commentary-move-mane-kings-judgment',
+      // Venom
+      'commentary/commentary-move-venom-venom-strike',
+      'commentary/commentary-move-venom-coil-crush',
+      'commentary/commentary-move-venom-toxic-fang',
+      'commentary/commentary-move-venom-serpent-lash',
+      'commentary/commentary-move-venom-poison-spit',
+      // Kong
+      'commentary/commentary-move-kong-ground-pound',
+      'commentary/commentary-move-kong-chest-beat',
+      'commentary/commentary-move-kong-gorilla-press',
+      'commentary/commentary-move-kong-primal-smash',
+      'commentary/commentary-move-kong-kong-crush',
+      // Razor
+      'commentary/commentary-move-razor-razor-bite',
+      'commentary/commentary-move-razor-fin-slash',
+      'commentary/commentary-move-razor-blood-frenzy',
+      'commentary/commentary-move-razor-deep-strike',
+      'commentary/commentary-move-razor-jaws-of-death',
+    ];
+
+    const allKeys = [...allClips, ...moveClips];
+
+    await Promise.all(
+      allKeys.map(async (name) => {
+        if (this.cache.has(name)) return;
+        try {
+          const res = await fetch(`/audio/${name}.mp3`);
+          if (!res.ok) return;
+          const arrayBuffer = await res.arrayBuffer();
+          const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+          this.cache.set(name, audioBuffer);
+        } catch {
+          // Move clip may not exist yet — that's fine, we fall back gracefully
+        }
+      }),
+    );
+
+    this.preloaded = true;
   }
 
-  warmup(): void {
-    if (this.warmedUp) return;
-    this.warmedUp = true;
-    this.loadVoice();
-    // Additional retry to ensure voices are ready
-    if (!this.voiceLoaded) {
-      setTimeout(() => this.loadVoice(), 500);
-      setTimeout(() => this.loadVoice(), 1500);
+  playClip(category: CommentaryCategory, priority: 'normal' | 'high' = 'normal'): void {
+    if (!this.enabled || typeof window === 'undefined') return;
+    this.enqueue({ type: 'category', category, priority });
+  }
+
+  /** Play a specific move-call clip by fighter name + move name, then queue a reaction clip */
+  playMove(fighterName: string, moveName: string, reactionCategory: CommentaryCategory, priority: 'normal' | 'high' = 'normal'): void {
+    if (!this.enabled || typeof window === 'undefined') return;
+    const clipKey = moveClipKey(fighterName, moveName);
+    if (this.cache.has(clipKey)) {
+      // Move call first, then reaction queued after
+      this.enqueue({ type: 'clip', clipKey, priority });
+      this.enqueue({ type: 'category', category: reactionCategory, priority: 'normal' });
+    } else {
+      // Move clip not available — fall back to generic reaction only
+      this.enqueue({ type: 'category', category: reactionCategory, priority });
     }
   }
 
-  speak(text: string, priority: 'normal' | 'high' = 'normal'): void {
-    if (!this.enabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-    this.loadVoice();
-
-    if (priority === 'high') {
-      window.speechSynthesis.cancel();
+  private enqueue(entry: QueueEntry): void {
+    if (entry.priority === 'high') {
+      this.stopCurrent();
       this.queue = [];
-      this.speaking = false;
+      this.playing = false;
     }
 
-    if (this.speaking && this.queue.length >= 2) {
+    if (this.playing && this.queue.length >= 3) {
       this.queue.shift();
     }
 
-    if (this.speaking) {
-      this.queue.push({ text, priority });
+    if (this.playing) {
+      this.queue.push(entry);
       return;
     }
 
-    this.speakNow(text, false);
+    this.playEntry(entry);
   }
 
-  private speakNow(text: string, isCrit = false): void {
-    // Try loading voice if not yet loaded
-    if (!this.voiceLoaded) {
-      this.loadVoice();
+  private playEntry(entry: QueueEntry): void {
+    let buffer: AudioBuffer | undefined;
+
+    if (entry.type === 'clip') {
+      buffer = this.cache.get(entry.clipKey);
+    } else {
+      const clips = CLIP_REGISTRY[entry.category];
+      const name = pick(clips);
+      buffer = this.cache.get(name);
     }
 
-    this.speaking = true;
-    const utterance = new SpeechSynthesisUtterance(text);
-    if (this.selectedVoice) utterance.voice = this.selectedVoice;
-    utterance.rate = 1.0;
-    utterance.pitch = 0.8;
-    utterance.volume = 0.9;
-
-    utterance.onend = () => {
-      this.speaking = false;
+    if (!buffer) {
       const next = this.queue.shift();
-      if (next) this.speakNow(next.text, next.priority === 'high');
-    };
-    utterance.onerror = () => {
-      this.speaking = false;
+      if (next) this.playEntry(next);
+      return;
+    }
+
+    this.playing = true;
+
+    const engine = SoundEngine.getInstance();
+    const ctx = engine.getContext();
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(engine.getMasterGain());
+    this.currentSource = source;
+
+    source.onended = () => {
+      this.currentSource = null;
+      this.playing = false;
       const next = this.queue.shift();
-      if (next) this.speakNow(next.text, next.priority === 'high');
+      if (next) this.playEntry(next);
     };
 
-    window.speechSynthesis.speak(utterance);
+    source.start();
+  }
+
+  private stopCurrent(): void {
+    if (this.currentSource) {
+      try { this.currentSource.stop(); } catch { /* already stopped */ }
+      this.currentSource = null;
+    }
   }
 
   stop(): void {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    this.stopCurrent();
     this.queue = [];
-    this.speaking = false;
+    this.playing = false;
   }
 
   setEnabled(on: boolean): void {
