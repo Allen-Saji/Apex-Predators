@@ -337,7 +337,7 @@ export default function FightViewer({ left, right }: { left: Fighter; right: Fig
                 }}
                 initial={{ scale: 0 }}
                 animate={{ scale: [0, 1.15, 1] }}
-                transition={{ type: 'spring', stiffness: 250, damping: 12 }}
+                transition={{ type: 'tween', duration: 0.4, ease: 'easeOut' }}
               >
                 <SkullIcon size={48} className="inline-block" /> K.O.!
               </motion.div>

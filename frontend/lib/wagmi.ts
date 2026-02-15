@@ -2,7 +2,7 @@
 
 import { http, createConfig } from 'wagmi';
 import { defineChain } from 'viem';
-import { injected } from 'wagmi/connectors';
+import { getDefaultConfig } from 'connectkit';
 
 export const monadTestnet = defineChain({
   id: 10143,
@@ -17,10 +17,14 @@ export const monadTestnet = defineChain({
   testnet: true,
 });
 
-export const config = createConfig({
-  chains: [monadTestnet],
-  connectors: [injected()],
-  transports: {
-    [monadTestnet.id]: http(),
-  },
-});
+export const config = createConfig(
+  getDefaultConfig({
+    chains: [monadTestnet],
+    transports: {
+      [monadTestnet.id]: http(),
+    },
+    walletConnectProjectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || '',
+    appName: 'Apex Predators',
+    appDescription: 'AI Agent MMA Arena on Monad',
+  }),
+);

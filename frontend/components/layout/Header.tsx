@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import WalletConnect from '@/components/common/WalletConnect';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Home' },
@@ -15,8 +16,6 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [connected, setConnected] = useState(false);
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -41,16 +40,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setConnected(!connected)}
-            className={`px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wider transition-all ${
-              connected
-                ? 'bg-green-600/20 text-green-400 border border-green-500/30'
-                : 'bg-red-600 hover:bg-red-700 text-white'
-            }`}
-          >
-            {connected ? '0x1a2b...ef12' : 'Connect Wallet'}
-          </button>
+          <WalletConnect />
 
           {/* Mobile menu button */}
           <button

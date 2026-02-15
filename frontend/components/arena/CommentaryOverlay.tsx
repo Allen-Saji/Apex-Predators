@@ -91,7 +91,7 @@ function OverlayContent({ event }: { event: CommentaryEvent }) {
             }}
             initial={{ scale: 0 }}
             animate={{ scale: [0, 1.15, 1] }}
-            transition={{ type: 'spring', stiffness: 250, damping: 12 }}
+            transition={{ type: 'tween', duration: 0.4, ease: 'easeOut' }}
           >
             K.O.!
           </motion.div>
