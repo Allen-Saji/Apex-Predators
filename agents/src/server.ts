@@ -9,6 +9,8 @@ import {
   generateCommentary,
 } from './agent.js';
 import { getAllPersonalities } from './personalities.js';
+import { runFight, runTournament, startAutoMode, stopAutoMode, getRecentEvents as getArenaEvents, getStatus } from './arena-manager.js';
+import { watchEvents, getRecentEvents as getChainEvents } from './event-listener.js';
 
 const app = express();
 app.use(cors());
@@ -87,6 +89,89 @@ app.post('/api/agent/commentary', async (req, res) => {
   }
 });
 
+// ── Arena endpoints ─────────────────────────────────────────────────
+
+app.post('/api/arena/run-fight', async (req, res) => {
+  try {
+    const { fighter1, fighter2, durationMinutes = 0 } = req.body;
+    if (!fighter1 || !fighter2) return res.status(400).json({ error: 'fighter1 and fighter2 required' });
+    const result = await runFight(fighter1, fighter2, durationMinutes);
+    res.json({
+      poolId: result.poolId.toString(),
+      fightId: result.fightId.toString(),
+      winner: result.result.winnerId.toString(),
+      loser: result.result.loserId.toString(),
+      totalTurns: result.result.totalTurns,
+      outcome: result.result.outcome === 1 ? 'KO' : 'Decision',
+      reactions: result.reactions,
+      turnLog: result.result.turnLog,
+    });
+  } catch (e: any) {
+    console.error('run-fight error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/arena/run-tournament', async (req, res) => {
+  try {
+    const { fighterIds, durationMinutes = 1 } = req.body;
+    if (!fighterIds || !Array.isArray(fighterIds) || fighterIds.length < 2) {
+      return res.status(400).json({ error: 'fighterIds array (min 2) required' });
+    }
+    const result = await runTournament(fighterIds, durationMinutes);
+    res.json({
+      championName: result.championName,
+      totalFights: result.results.length,
+      fights: result.results.map((r) => ({
+        poolId: r.poolId.toString(),
+        fightId: r.fightId.toString(),
+        winner: r.result.winnerId.toString(),
+        loser: r.result.loserId.toString(),
+        outcome: r.result.outcome === 1 ? 'KO' : 'Decision',
+      })),
+    });
+  } catch (e: any) {
+    console.error('run-tournament error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/arena/auto-mode', (req, res) => {
+  const { enabled, intervalMinutes = 5 } = req.body;
+  if (enabled) {
+    startAutoMode(intervalMinutes);
+    res.json({ status: 'auto-mode started', intervalMinutes });
+  } else {
+    stopAutoMode();
+    res.json({ status: 'auto-mode stopped' });
+  }
+});
+
+app.get('/api/arena/status', (_req, res) => {
+  res.json(getStatus());
+});
+
+app.get('/api/arena/events', (req, res) => {
+  const count = parseInt(req.query.count as string) || 50;
+  const arenaEvents = getArenaEvents(count);
+  const chainEvents = getChainEvents(count);
+  res.json({ arenaEvents, chainEvents });
+});
+
+// ── Start server + event watchers ───────────────────────────────────
+
 app.listen(PORT, () => {
   console.log(`Apex Agents API running on port ${PORT}`);
+
+  // Start on-chain event watchers if PRIVATE_KEY is configured
+  if (process.env.PRIVATE_KEY) {
+    try {
+      watchEvents();
+      console.log('On-chain event watchers started');
+    } catch (err: any) {
+      console.warn('Failed to start event watchers:', err.message);
+    }
+  } else {
+    console.warn('PRIVATE_KEY not set — on-chain features disabled');
+  }
 });
