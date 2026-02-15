@@ -10,41 +10,54 @@ const PRESETS = [0.1, 0.5, 1, 5];
 export default function BetForm({
   fighter1,
   fighter2,
+  fighter1Id,
+  fighter2Id,
   pool1,
   pool2,
   onPlaceBet,
   isPlacing,
+  disabled,
+  minBet,
 }: {
   fighter1: Fighter;
   fighter2: Fighter;
+  fighter1Id: bigint;
+  fighter2Id: bigint;
   pool1: number;
   pool2: number;
-  onPlaceBet: (fighterId: string, amount: number) => void;
+  onPlaceBet: (fighterId: bigint, amount: string) => void;
   isPlacing: boolean;
+  disabled?: boolean;
+  minBet?: number;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<'f1' | 'f2' | null>(null);
   const [amount, setAmount] = useState(1);
   const [customMode, setCustomMode] = useState(false);
 
   const total = pool1 + pool2 + amount;
-  const myPool = selected === fighter1.id ? pool1 + amount : pool2 + amount;
+  const myPool = selected === 'f1' ? pool1 + amount : pool2 + amount;
   const payout = total > 0 ? (amount / myPool) * total : 0;
+
+  const selectedFighter = selected === 'f1' ? fighter1 : selected === 'f2' ? fighter2 : null;
+  const selectedId = selected === 'f1' ? fighter1Id : selected === 'f2' ? fighter2Id : null;
+
+  const effectiveMinBet = minBet ?? 0.01;
 
   return (
     <div className="space-y-6">
       {/* Face-off layout */}
       <div className="flex items-center justify-center gap-4">
-        {[fighter1, fighter2].map((f, i) => (
+        {([['f1', fighter1], ['f2', fighter2]] as const).map(([key, f]) => (
           <motion.button
-            key={f.id}
-            onClick={() => setSelected(f.id)}
+            key={key}
+            onClick={() => !disabled && setSelected(key)}
             className={`flex-1 flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-              selected === f.id
+              selected === key
                 ? 'border-red-500 bg-red-500/10'
                 : 'border-white/10 bg-white/5 hover:border-white/20'
-            }`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            whileHover={disabled ? {} : { scale: 1.02 }}
+            whileTap={disabled ? {} : { scale: 0.98 }}
           >
             <div className="w-20 h-20 md:w-28 md:h-28 relative rounded-xl overflow-hidden border-2" style={{ borderColor: f.color }}>
               <Image
@@ -100,7 +113,7 @@ export default function BetForm({
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
               className="w-full mt-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono focus:border-red-500 focus:outline-none"
-              min={0.01}
+              min={effectiveMinBet}
               step={0.1}
             />
           )}
@@ -117,12 +130,16 @@ export default function BetForm({
             </div>
           </div>
 
+          {amount < effectiveMinBet && (
+            <div className="text-xs text-red-400 mt-2">Minimum bet is {effectiveMinBet} MON</div>
+          )}
+
           <button
-            onClick={() => onPlaceBet(selected, amount)}
-            disabled={isPlacing}
+            onClick={() => selectedId && onPlaceBet(selectedId, amount.toString())}
+            disabled={isPlacing || disabled || amount < effectiveMinBet}
             className="w-full mt-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white font-black uppercase tracking-wider rounded-xl transition-all text-lg"
           >
-            {isPlacing ? 'Placing Bet...' : `Bet ${amount} MON on ${selected === fighter1.id ? fighter1.name : fighter2.name}`}
+            {isPlacing ? 'Placing Bet...' : `Bet ${amount} MON on ${selectedFighter?.name ?? ''}`}
           </button>
         </motion.div>
       )}
