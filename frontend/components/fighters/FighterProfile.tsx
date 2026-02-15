@@ -1,15 +1,39 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Fighter } from '@/lib/types';
+import { fighters } from '@/lib/fighters';
+import FightViewer from '@/components/arena/FightViewer';
 
 export default function FighterProfile({ fighter }: { fighter: Fighter }) {
+  const [opponent, setOpponent] = useState<Fighter | null>(null);
+
+  const startDemoFight = () => {
+    const others = fighters.filter((f) => f.id !== fighter.id);
+    setOpponent(others[Math.floor(Math.random() * others.length)]);
+  };
+
+  if (opponent) {
+    return (
+      <div className="min-h-screen">
+        <div className="absolute top-20 left-4 z-50">
+          <button
+            onClick={() => setOpponent(null)}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-bold rounded-lg transition-colors"
+          >
+            Back to Profile
+          </button>
+        </div>
+        <FightViewer left={fighter} right={opponent} />
+      </div>
+    );
+  }
   const winRate = Math.round((fighter.wins / (fighter.wins + fighter.losses)) * 100);
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="grid md:grid-cols-2 gap-8">
         {/* Image */}
         <motion.div
@@ -88,12 +112,12 @@ export default function FighterProfile({ fighter }: { fighter: Fighter }) {
             </div>
           </div>
 
-          <Link
-            href={`/arena/demo?left=${fighter.id}&right=${fighter.id === 'kodiak' ? 'fang' : 'kodiak'}`}
+          <button
+            onClick={startDemoFight}
             className="inline-block text-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold uppercase tracking-wider rounded-lg transition-colors"
           >
             Watch Fight →
-          </Link>
+          </button>
         </motion.div>
       </div>
     </div>

@@ -10,9 +10,5 @@ export default function FighterPage({ params }: { params: Promise<{ id: string }
   const fighter = getFighter(id);
   if (!fighter) return notFound();
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <FighterProfile fighter={fighter} />
-    </div>
-  );
+  return <FighterProfile fighter={fighter} />;
 }
