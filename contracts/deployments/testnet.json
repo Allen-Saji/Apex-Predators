@@ -1,0 +1,12 @@
+{
+  "chainId": 10143,
+  "rpc": "https://testnet-rpc.monad.xyz",
+  "deployer": "0x3AE353608Ce2A5C87825a5d3A9a4F3640B61E3fa",
+  "contracts": {
+    "FighterRegistry": "0xDe8Ba6cD9516f015323053298933346Bc57B0750",
+    "BettingPool": "0x3f009eD70a5379B99038bfb98A3e7be29a20c31a",
+    "FightResolver": "0xFEae2E6025271c0ca92C208EeF4D883ae2b38CB1",
+    "Tournament": "0x222D29B8727A4651F4D83998907654B2aBabfDCd"
+  },
+  "deployedAt": "2026-02-15T00:27:00Z"
+}

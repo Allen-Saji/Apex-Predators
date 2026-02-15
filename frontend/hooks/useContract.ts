@@ -1,12 +1,22 @@
 'use client';
 
-// Placeholder hooks for contract interaction
-// Will be connected to real contracts after deployment
-
-export function useContractRead() {
-  return { data: null, isLoading: false, error: null };
-}
-
-export function useContractWrite() {
-  return { write: () => {}, isLoading: false, error: null };
-}
+// Re-export all contract hooks from the new module
+export {
+  useFighterCount,
+  useFighterOnChain,
+  useFighterStats,
+  useFighterMoves,
+  usePoolCount,
+  usePool,
+  useUserBet,
+  useMinBet,
+  usePlaceBet,
+  useClaimWinnings,
+  useFightCount,
+  useFight,
+  useActiveSeasonId,
+  useSeason,
+  useTournament,
+  useTournamentMatch,
+  useTournamentCount,
+} from './useContracts';

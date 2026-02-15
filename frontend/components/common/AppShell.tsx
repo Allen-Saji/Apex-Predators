@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import LoadingScreen from './LoadingScreen';
+import Web3Provider from './Web3Provider';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -13,7 +14,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <>
+    <Web3Provider>
       <AnimatePresence>
         {loading && (
           <motion.div
@@ -32,6 +33,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </motion.div>
-    </>
+    </Web3Provider>
   );
 }
