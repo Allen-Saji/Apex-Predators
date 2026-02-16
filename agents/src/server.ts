@@ -11,6 +11,8 @@ import {
 import { getAllPersonalities } from './personalities.js';
 import { runFight, runTournament, startAutoMode, stopAutoMode, getRecentEvents as getArenaEvents, getStatus } from './arena-manager.js';
 import { watchEvents, getRecentEvents as getChainEvents } from './event-listener.js';
+import { fightEvents } from './fight-events.js';
+import type { FightStartEvent, FightTurnEvent, FightEndEvent, FightProgressEvent } from './fight-events.js';
 
 const app = express();
 app.use(cors());
@@ -156,6 +158,61 @@ app.get('/api/arena/events', (req, res) => {
   const arenaEvents = getArenaEvents(count);
   const chainEvents = getChainEvents(count);
   res.json({ arenaEvents, chainEvents });
+});
+
+// ── SSE: Live fight stream ──────────────────────────────────────────
+
+app.get('/api/arena/live', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+
+  const send = (event: string, data: unknown) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Late-join replay: send all active fight states
+  for (const fight of fightEvents.getActiveFights().values()) {
+    if (fight.progress) {
+      send('fight:progress', fight.progress);
+    }
+    if (fight.start) {
+      send('fight:start', fight.start);
+      for (const t of fight.turns) {
+        send('fight:turn', t);
+      }
+    }
+    if (fight.ended && fight.end) {
+      send('fight:end', fight.end);
+    }
+  }
+
+  // Forward live events
+  const onProgress = (data: FightProgressEvent) => send('fight:progress', data);
+  const onStart = (data: FightStartEvent) => send('fight:start', data);
+  const onTurn = (data: FightTurnEvent) => send('fight:turn', data);
+  const onEnd = (data: FightEndEvent) => send('fight:end', data);
+
+  fightEvents.on('fight:progress', onProgress);
+  fightEvents.on('fight:start', onStart);
+  fightEvents.on('fight:turn', onTurn);
+  fightEvents.on('fight:end', onEnd);
+
+  // Heartbeat to keep connection alive
+  const heartbeat = setInterval(() => {
+    res.write(': heartbeat\n\n');
+  }, 15000);
+
+  // Cleanup on disconnect
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    fightEvents.off('fight:progress', onProgress);
+    fightEvents.off('fight:start', onStart);
+    fightEvents.off('fight:turn', onTurn);
+    fightEvents.off('fight:end', onEnd);
+  });
 });
 
 // ── Start server + event watchers ───────────────────────────────────

@@ -8,7 +8,8 @@ import {
   getFighterMoves,
   getFighterOnChain,
 } from './blockchain.js';
-import { generateSeed, hashSeed, simulateFight, type FightSimResult, type Move } from './fight-sim.js';
+import { generateSeed, hashSeed, simulateFight, type FightSimResult, type TurnResult, type Move } from './fight-sim.js';
+import { fightEvents } from './fight-events.js';
 import {
   generateTrashTalk,
   generateFightReaction,
@@ -123,13 +124,22 @@ export async function runFight(
   await closePool(poolId);
   log({ type: 'pool_closed', timestamp: Date.now(), data: { poolId: poolId.toString() } });
 
+  // Notify SSE subscribers that this pool's fight is being prepared
+  fightEvents.emitFightProgress({
+    poolId: poolId.toString(),
+    stage: 'closing_pool',
+    message: 'Pool closed — preparing fight...',
+  });
+
   // 5. Create fight on-chain
   activeFight.stage = 'creating_fight';
+  fightEvents.emitFightProgress({ poolId: poolId.toString(), stage: 'creating_fight', message: 'Creating fight on-chain...' });
   const { fightId } = await createFight(poolId, f1Id, f2Id);
   log({ type: 'fight_created', timestamp: Date.now(), data: { fightId: fightId.toString(), poolId: poolId.toString() } });
 
   // 6. Generate seed and commit hash
   activeFight.stage = 'committing_seed';
+  fightEvents.emitFightProgress({ poolId: poolId.toString(), stage: 'committing_seed', message: 'Committing fight seed...' });
   const seed = generateSeed();
   const seedHash = hashSeed(seed);
   await commitSeed(fightId, seedHash);
@@ -144,14 +154,61 @@ export async function runFight(
     revealDelay = 300n; // default 5 min
   }
   const delayMs = Number(revealDelay) * 1000 + 10_000; // + 10s buffer
-  console.log(`[arena] Waiting ${delayMs / 1000}s for reveal delay...`);
+  const delaySec = Math.ceil(delayMs / 1000);
+  const revealEta = Math.floor(Date.now() / 1000) + delaySec;
+  fightEvents.emitFightProgress({
+    poolId: poolId.toString(),
+    stage: 'waiting_reveal_delay',
+    message: `Waiting for reveal window (~${Math.ceil(delaySec / 60)}min)...`,
+    eta: revealEta,
+  });
+  console.log(`[arena] Waiting ${delaySec}s for reveal delay...`);
   await sleep(delayMs);
 
   // 8. Simulate fight deterministically
   activeFight.stage = 'simulating';
+  fightEvents.emitFightProgress({ poolId: poolId.toString(), stage: 'simulating', message: 'Simulating fight...' });
   const f1Moves = await getMovesForFighter(f1Id);
   const f2Moves = await getMovesForFighter(f2Id);
   const fightResult = simulateFight(f1Id, f2Id, f1Moves, f2Moves, seed);
+
+  // 8b. Stream fight turns via SSE
+  activeFight.stage = 'streaming';
+  fightEvents.emitFightStart({
+    poolId: poolId.toString(),
+    fighter1Id: f1Id.toString(),
+    fighter2Id: f2Id.toString(),
+    fighter1Name: f1.name,
+    fighter2Name: f2.name,
+  });
+
+  for (let i = 0; i < fightResult.turnLog.length; i++) {
+    const turn = fightResult.turnLog[i];
+    // Variable delay matching frontend pacing
+    let delay: number;
+    if (turn.isCrit) delay = 7500;
+    else if (turn.damage >= 15) delay = 6500;
+    else if (turn.damage >= 8) delay = 5000;
+    else delay = 3500;
+    await sleep(delay);
+
+    fightEvents.emitFightTurn({
+      poolId: poolId.toString(),
+      turn,
+      turnIndex: i,
+      totalTurns: fightResult.turnLog.length,
+    });
+  }
+
+  // Short pause after last turn before resolution
+  await sleep(2000);
+
+  fightEvents.emitFightEnd({
+    poolId: poolId.toString(),
+    winnerId: fightResult.winnerId.toString(),
+    loserId: fightResult.loserId.toString(),
+    outcome: fightResult.outcome,
+  });
 
   // 9. Reveal and resolve on-chain
   activeFight.stage = 'resolving';
