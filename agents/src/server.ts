@@ -18,6 +18,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// BigInt-safe JSON serialization — express uses JSON.stringify which chokes on BigInt
+app.set('json replacer', (_key: string, value: unknown) => typeof value === 'bigint' ? value.toString() : value);
+
 const PORT = parseInt(process.env.PORT || '3004', 10);
 
 app.get('/api/agent/fighters', (_req, res) => {
