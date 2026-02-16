@@ -58,8 +58,9 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
     // Don't fire commentary for KO — FightViewer handles it directly
   }, [onKo]);
 
-  const [showTrashTalk, setShowTrashTalk] = useState(true);
+  const [showTrashTalk, setShowTrashTalk] = useState(!liveMode);
   const [reactionsLoaded, setReactionsLoaded] = useState(false);
+  const [liveIntro, setLiveIntro] = useState<'fight' | 'joining' | null>(null);
 
   const {
     turns, turnIndex, running, done, hpLeft, hpRight, log,
@@ -79,7 +80,14 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
     if (autoStart && presetTurns && presetTurns.length > 0 && !autoStarted.current) {
       autoStarted.current = true;
       if (liveMode) {
-        startLive();
+        // Brief intro flash before starting
+        const joinedLate = presetTurns.length > 2;
+        setLiveIntro(joinedLate ? 'joining' : 'fight');
+        setTimeout(() => {
+          setLiveIntro(null);
+          startLive();
+          wrappedOnFightStart(left.name, right.name, left.animal, right.animal);
+        }, 1500);
       } else {
         handleStartFight();
       }
@@ -129,6 +137,80 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
         <div className="text-center mb-4">
           <span className="text-xs uppercase tracking-[0.3em] text-gray-500">Season 1 · The Jungle</span>
         </div>
+
+        {/* Live mode brief intro flash */}
+        <AnimatePresence>
+          {liveIntro && (
+            <motion.div
+              className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.3 } }}
+            >
+              <div className="absolute inset-0 bg-[#050505]" />
+              <div className="relative z-10 flex flex-col items-center gap-4">
+                {liveIntro === 'fight' ? (
+                  <>
+                    <motion.div
+                      className="flex items-center gap-4 md:gap-8 mb-4"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="w-16 h-16 md:w-20 md:h-20 relative rounded-xl overflow-hidden border-2" style={{ borderColor: left.color }}>
+                        <Image src={left.image} alt={left.name} fill className="object-cover" style={{ objectPosition: left.focalPoint || 'center center' }} />
+                      </div>
+                      <span className="text-2xl md:text-3xl font-black text-red-500">VS</span>
+                      <div className="w-16 h-16 md:w-20 md:h-20 relative rounded-xl overflow-hidden border-2" style={{ borderColor: right.color }}>
+                        <Image src={right.image} alt={right.name} fill className="object-cover" style={{ objectPosition: right.focalPoint || 'center center' }} />
+                      </div>
+                    </motion.div>
+                    <motion.div
+                      className="text-5xl md:text-7xl font-black text-red-500"
+                      style={{ textShadow: '0 0 40px rgba(220,38,38,0.6)' }}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: [0, 1.3, 1] }}
+                      transition={{ duration: 0.4, delay: 0.2 }}
+                    >
+                      FIGHT!
+                    </motion.div>
+                  </>
+                ) : (
+                  <>
+                    <motion.div
+                      className="flex items-center gap-2 mb-2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                      </span>
+                      <span className="text-xs uppercase tracking-widest text-red-400 font-bold">Live</span>
+                    </motion.div>
+                    <motion.div
+                      className="text-3xl md:text-5xl font-black text-white"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                    >
+                      {left.name} <span className="text-red-500">vs</span> {right.name}
+                    </motion.div>
+                    <motion.div
+                      className="text-sm text-gray-400 font-mono"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      Joining at Round {(presetTurns?.length ?? 0)}...
+                    </motion.div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Intro overlay with spotlight sequence */}
         <AnimatePresence>
@@ -601,7 +683,7 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
 
         {/* Start Fight button (only pre-fight) */}
         <div className="flex justify-center gap-4 mt-8">
-          {!running && !done && !isKoActive && (
+          {!running && !done && !isKoActive && !liveMode && (
             <button
               onClick={handleStartFight}
               className="px-10 py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl text-lg uppercase tracking-wider transition-all hover:scale-105"
