@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 
 const SECTIONS = [
   { id: 'how-it-works', label: 'How It Works' },
+  { id: 'agent', label: 'The Agent' },
   { id: 'fight-mechanics', label: 'Fight Mechanics' },
   { id: 'fighters', label: 'The Fighters' },
   { id: 'betting', label: 'Betting Rules' },
@@ -178,6 +179,75 @@ export default function InfoPage() {
                   <p className="text-gray-400 text-sm">{item.desc}</p>
                 </Card>
               ))}
+            </div>
+          </section>
+
+          {/* The Agent */}
+          <section>
+            <SectionHeading id="agent">The Agent</SectionHeading>
+            <div className="space-y-4">
+              <Card>
+                <div className="flex items-start gap-3 mb-4">
+                  <h3 className="text-white font-bold text-lg">Autonomous Arena Manager</h3>
+                  <Badge>Moltiverse — Agent Track</Badge>
+                </div>
+                <p className="text-gray-400 text-sm mb-4">
+                  Apex Predators is powered by an autonomous agent that orchestrates the entire fight lifecycle on Monad — no human intervention required once deployed. The agent manages matchmaking, on-chain transactions, fight simulation, real-time streaming, and result resolution in a continuous loop.
+                </p>
+                <p className="text-gray-400 text-sm">
+                  Built for the <span className="text-white font-semibold">Moltiverse Hackathon — Gaming Arena Agents</span> bounty. The agent demonstrates meaningful on-chain autonomy: it creates betting pools, executes commit-reveal schemes for fair randomness, simulates deterministic fights from seeds, streams turn-by-turn results to spectators via SSE, and resolves outcomes on-chain — all without manual triggers.
+                </p>
+              </Card>
+
+              <Card>
+                <h3 className="text-white font-bold text-lg mb-4">10-Step Fight Flow</h3>
+                <div className="space-y-3">
+                  {[
+                    { step: '1', title: 'Create Pool', desc: 'Agent calls BettingPool.createPool(fighter1, fighter2) to open a new matchup for bets.' },
+                    { step: '2', title: 'Betting Period', desc: 'Users place MON bets on either fighter. Agent monitors the pool status on-chain.' },
+                    { step: '3', title: 'Close Pool', desc: 'Agent calls closePool() when the betting window expires. No more bets accepted.' },
+                    { step: '4', title: 'Create Fight', desc: 'Agent registers the fight on FightResolver.createFight(poolId) linking the pool to a fight ID.' },
+                    { step: '5', title: 'Commit Seed', desc: 'Agent generates a random seed, hashes it, and commits the hash on-chain (commit-reveal scheme).' },
+                    { step: '6', title: 'Wait Reveal Delay', desc: 'On-chain enforced minimum delay (~5 min) prevents the agent from manipulating results after seeing bets.' },
+                    { step: '7', title: 'Simulate Fight', desc: 'Agent reveals the seed and deterministically simulates the fight — same seed always produces the same outcome.' },
+                    { step: '8', title: 'Stream via SSE', desc: 'Turn-by-turn results are streamed to all connected spectators in real-time via Server-Sent Events.' },
+                    { step: '9', title: 'Resolve On-Chain', desc: 'Agent calls revealAndResolve() with the seed and encoded turn log. Result is permanently stored on-chain.' },
+                    { step: '10', title: 'Payouts Unlock', desc: 'After a 1-hour dispute period, winners can claim their share of the betting pool.' },
+                  ].map((item) => (
+                    <div key={item.step} className="flex gap-3">
+                      <span className="text-red-500/60 font-black text-lg shrink-0 w-6 text-right">{item.step}</span>
+                      <div>
+                        <span className="text-white font-bold text-sm">{item.title}</span>
+                        <span className="text-gray-500 text-sm"> — {item.desc}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <Card>
+                  <h3 className="text-white font-bold text-lg mb-3">Why It&apos;s an Agent</h3>
+                  <ul className="space-y-2 text-gray-400 text-sm">
+                    <li><span className="text-white font-semibold">Autonomous execution</span> — runs the full fight lifecycle in a loop without human triggers</li>
+                    <li><span className="text-white font-semibold">On-chain state management</span> — reads pool/fight state, makes transaction decisions based on current conditions</li>
+                    <li><span className="text-white font-semibold">Multi-contract orchestration</span> — coordinates BettingPool, FightResolver, and FighterRegistry contracts</li>
+                    <li><span className="text-white font-semibold">Real-time streaming</span> — pushes live fight events to spectators via SSE as the simulation runs</li>
+                    <li><span className="text-white font-semibold">Error recovery</span> — handles reverts, retries failed transactions, manages gas and nonce</li>
+                  </ul>
+                </Card>
+                <Card>
+                  <h3 className="text-white font-bold text-lg mb-3">Tech Stack</h3>
+                  <ul className="space-y-2 text-gray-400 text-sm">
+                    <li><span className="text-white font-semibold">Runtime:</span> Node.js / Express server (TypeScript)</li>
+                    <li><span className="text-white font-semibold">Chain:</span> Monad Testnet (EVM, Chain ID 10143)</li>
+                    <li><span className="text-white font-semibold">On-chain:</span> viem for contract reads/writes, wallet client for signing</li>
+                    <li><span className="text-white font-semibold">Streaming:</span> Server-Sent Events (SSE) for real-time fight data</li>
+                    <li><span className="text-white font-semibold">Simulation:</span> Deterministic fight engine — seed → identical output, verifiable by anyone</li>
+                    <li><span className="text-white font-semibold">Frontend:</span> Next.js 14 + wagmi/viem for on-chain reads</li>
+                  </ul>
+                </Card>
+              </div>
             </div>
           </section>
 
