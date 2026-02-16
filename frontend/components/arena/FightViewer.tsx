@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Fighter } from '@/lib/types';
+import { Fighter, Turn } from '@/lib/types';
 import { useFight } from '@/hooks/useFight';
 import { useFightSounds } from '@/hooks/useFightSounds';
 import SoundEngine from '@/lib/sound-engine';
@@ -15,7 +15,7 @@ import { SkullIcon, MicIcon, SpeakerIcon, SpeakerMuteIcon, FistIcon, RefreshIcon
 import TrashTalk from './TrashTalk';
 import PostFightReaction from './PostFightReaction';
 
-export default function FightViewer({ left, right, onBack }: { left: Fighter; right: Fighter; onBack?: () => void }) {
+export default function FightViewer({ left, right, onBack, presetTurns, autoStart, liveMode }: { left: Fighter; right: Fighter; onBack?: () => void; presetTurns?: Turn[]; autoStart?: boolean; liveMode?: boolean }) {
   const { muted, commentaryOn, onFightStart, onAttack, onKo, onFightEnd, toggleMute, toggleCommentary } = useFightSounds();
 
   // Preload SFX on mount
@@ -64,14 +64,27 @@ export default function FightViewer({ left, right, onBack }: { left: Fighter; ri
   const {
     turns, turnIndex, running, done, hpLeft, hpRight, log,
     showDamage, hitSide, attackSide, screenShake, ko, koPhase, introPhase,
-    startFight, winner,
-  } = useFight(left, right, { onFightStart: wrappedOnFightStart, onAttack: wrappedOnAttack, onKo: wrappedOnKo, onFightEnd });
+    startFight, startLive, winner,
+  } = useFight(left, right, { onFightStart: wrappedOnFightStart, onAttack: wrappedOnAttack, onKo: wrappedOnKo, onFightEnd }, presetTurns, liveMode);
 
   const handleStartFight = useCallback(() => {
     setShowTrashTalk(false);
     setReactionsLoaded(false);
     startFight();
   }, [startFight]);
+
+  // Auto-start when presetTurns are provided and autoStart is set
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStart && presetTurns && presetTurns.length > 0 && !autoStarted.current) {
+      autoStarted.current = true;
+      if (liveMode) {
+        startLive();
+      } else {
+        handleStartFight();
+      }
+    }
+  }, [autoStart, presetTurns, handleStartFight, liveMode, startLive]);
 
   const isKoActive = koPhase !== null;
   const winnerSide: 'left' | 'right' | null = ko === 'left' ? 'right' : ko === 'right' ? 'left' : null;

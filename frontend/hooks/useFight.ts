@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Turn, Fighter } from '@/lib/types';
 
 function generateFight(left: Fighter, right: Fighter): Turn[] {
@@ -37,7 +37,7 @@ export interface FightCallbacks {
   onFightEnd?: () => void;
 }
 
-export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbacks) {
+export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbacks, presetTurns?: Turn[], liveMode?: boolean) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [turnIndex, setTurnIndex] = useState(-1);
   const [running, setRunning] = useState(false);
@@ -53,6 +53,10 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
   const [koPhase, setKoPhase] = useState<'impact' | 'cinematic' | 'announce' | 'settle' | null>(null);
   const [introPhase, setIntroPhase] = useState(false);
   const timersRef = useRef<NodeJS.Timeout[]>([]);
+
+  // Track how many turns we've processed in live mode
+  const liveProcessedRef = useRef(0);
+  const liveStartedRef = useRef(false);
 
   const playTurn = useCallback((idx: number, t: Turn[]) => {
     const turn = t[idx];
@@ -126,7 +130,7 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
 
-    const newFight = generateFight(left, right);
+    const newFight = presetTurns && presetTurns.length > 0 ? presetTurns : generateFight(left, right);
     setTurns(newFight);
     setTurnIndex(-1);
     setDone(false);
@@ -159,13 +163,95 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
       });
     }, 4000);
     timersRef.current.push(introTimer);
-  }, [left, right, playTurn]);
+  }, [left, right, playTurn, presetTurns]);
+
+  // ── Live mode: catch up instantly, then animate new turns ──
+  const startLive = useCallback(() => {
+    if (liveStartedRef.current) return;
+    liveStartedRef.current = true;
+
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+
+    const existingTurns = presetTurns ?? [];
+
+    // Instantly catch up to all existing turns
+    setTurns([...existingTurns]);
+    setRunning(true);
+    setIntroPhase(false);
+    setDone(false);
+    setKo(null);
+    setKoPhase(null);
+    setShowDamage(null);
+    setHitSide(null);
+    setAttackSide(null);
+
+    if (existingTurns.length > 0) {
+      const lastTurn = existingTurns[existingTurns.length - 1];
+      setHpLeft(lastTurn.hpLeft);
+      setHpRight(lastTurn.hpRight);
+      setLog(existingTurns.map((t) => t.text));
+      setTurnIndex(existingTurns.length - 1);
+
+      // Check if fight already ended in catch-up turns
+      if (lastTurn.hpLeft <= 0 || lastTurn.hpRight <= 0) {
+        const koSide = lastTurn.hpLeft <= 0 ? 'left' as const : 'right' as const;
+        setKo(koSide);
+        setRunning(false);
+        setKoPhase('impact');
+        const t_cine = setTimeout(() => setKoPhase('cinematic'), 500);
+        const t_ann = setTimeout(() => setKoPhase('announce'), 1500);
+        const t_settle = setTimeout(() => { setKoPhase('settle'); setDone(true); }, 3000);
+        timersRef.current.push(t_cine, t_ann, t_settle);
+        setTimeout(() => callbacks?.onFightEnd?.(), 3000);
+      }
+    } else {
+      setHpLeft(100);
+      setHpRight(100);
+      setLog([]);
+      setTurnIndex(-1);
+    }
+
+    liveProcessedRef.current = existingTurns.length;
+  }, [presetTurns]);
+
+  // Watch for new turns appended to presetTurns in live mode
+  useEffect(() => {
+    if (!liveMode || !liveStartedRef.current) return;
+    if (!presetTurns) return;
+
+    const newCount = presetTurns.length;
+    const processed = liveProcessedRef.current;
+
+    if (newCount <= processed) return;
+
+    // Animate each new turn with delays
+    const newTurns = presetTurns.slice(processed);
+    setTurns([...presetTurns]);
+
+    let cumulative = 0;
+    newTurns.forEach((turn, i) => {
+      const globalIdx = processed + i;
+      let delay: number;
+      if (turn.isCrit) delay = 7500;
+      else if (turn.damage >= 15) delay = 6500;
+      else if (turn.damage >= 8) delay = 5000;
+      else delay = 3500;
+      // First new turn plays faster (1s) so user sees it quickly
+      if (i === 0) delay = 1000;
+      cumulative += delay;
+      const t = setTimeout(() => playTurn(globalIdx, presetTurns), cumulative);
+      timersRef.current.push(t);
+    });
+
+    liveProcessedRef.current = newCount;
+  }, [liveMode, presetTurns?.length, playTurn]);
 
   const winner = ko === 'left' ? right : ko === 'right' ? left : null;
 
   return {
     turns, turnIndex, running, done, hpLeft, hpRight, log,
     showDamage, hitSide, attackSide, screenShake, ko, koPhase, introPhase,
-    startFight, winner,
+    startFight, startLive, winner,
   };
 }
