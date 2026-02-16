@@ -19,6 +19,7 @@ class SoundEngine {
   private ambienceNode: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
   private celebrationNode: AudioBufferSourceNode | null = null;
   private muted = false;
+  private killed = false;
   private volume = 0.7;
   private initialized = false;
   private cache = new Map<string, AudioBuffer>();
@@ -40,7 +41,8 @@ class SoundEngine {
       this.masterGain.connect(this.ctx.destination);
       this.initialized = true;
     }
-    if (this.ctx.state === 'suspended') {
+    // Only resume if not killed — killed means stopAll was called
+    if (this.ctx.state === 'suspended' && !this.killed) {
       this.ctx.resume();
     }
     return this.ctx;
@@ -55,7 +57,14 @@ class SoundEngine {
     if (this.cache.has(name)) return this.cache.get(name)!;
 
     try {
+      // For loading, temporarily revive context if needed, then re-kill
+      const wasKilled = this.killed;
+      if (wasKilled) this.killed = false;
       const ctx = this.ensureContext();
+      if (wasKilled) {
+        this.killed = true;
+        if (this.ctx && this.ctx.state === 'running') this.ctx.suspend();
+      }
       const res = await fetch(`/audio/${name}.mp3`);
       if (!res.ok) return null;
       const arrayBuffer = await res.arrayBuffer();
@@ -70,12 +79,22 @@ class SoundEngine {
 
   async preload(): Promise<void> {
     if (this.preloaded) return;
+    // Preload just fetches and decodes — don't un-kill
+    const wasKilled = this.killed;
+    if (wasKilled) this.killed = false;
     this.ensureContext();
+    if (wasKilled) {
+      this.killed = true;
+      if (this.ctx && this.ctx.state === 'running') this.ctx.suspend();
+    }
     await Promise.all(SFX_FILES.map((name) => this.loadAudio(name)));
     this.preloaded = true;
   }
 
   private playBuffer(name: string, opts?: { loop?: boolean; gain?: number }): AudioBufferSourceNode | null {
+    // If killed, refuse to play anything
+    if (this.killed) return null;
+
     const buffer = this.cache.get(name);
     if (!buffer) return null;
 
@@ -141,6 +160,14 @@ class SoundEngine {
     this.playBuffer('crowd-roar', { gain: 0.9 });
   }
 
+  playWhoosh(): void {
+    this.playBuffer('whoosh', { gain: 0.5 });
+  }
+
+  playCrowdCheer(): void {
+    this.playBuffer('crowd-cheer-light', { gain: 0.5 });
+  }
+
   playCelebration(): void {
     this.stopCelebration();
     const source = this.playBuffer('celebration', { gain: 0.7, loop: true });
@@ -155,7 +182,7 @@ class SoundEngine {
 
   playAnimalIntro(animal: string): void {
     const key = `animal-${animal.toLowerCase()}`;
-    this.playBuffer(key, { gain: 0.8 });
+    this.playBuffer(key, { gain: 1.0 });
   }
 
   playCrowdReact(intensity: 'light' | 'medium' | 'heavy'): void {
@@ -171,7 +198,7 @@ class SoundEngine {
   startAmbience(): void {
     this.stopAmbience();
     const buffer = this.cache.get('crowd-ambient');
-    if (!buffer) return;
+    if (!buffer || this.killed) return;
 
     const ctx = this.ensureContext();
     const source = ctx.createBufferSource();
@@ -215,12 +242,34 @@ class SoundEngine {
     this.ambienceNode = null;
   }
 
-  /** Stop everything: ambience, celebration, and all pending scheduled sounds */
+  /** Kill all audio — nothing plays until revive() is called */
   stopAll(): void {
+    this.killed = true;
     for (const id of this.pendingTimers) clearTimeout(id);
     this.pendingTimers.clear();
     this.stopAmbience();
     this.stopCelebration();
+    // Immediately zero the gain (synchronous = instant silence)
+    if (this.masterGain) {
+      this.masterGain.gain.value = 0;
+    }
+    // Suspend context to halt all in-flight one-shot AudioBufferSourceNodes
+    if (this.ctx && this.ctx.state === 'running') {
+      this.ctx.suspend();
+    }
+  }
+
+  /** Revive after stopAll — call this before starting a new fight */
+  revive(): void {
+    this.killed = false;
+    this.ensureContext();
+    if (this.masterGain) {
+      this.masterGain.gain.value = this.muted ? 0 : this.volume;
+    }
+  }
+
+  isKilled(): boolean {
+    return this.killed;
   }
 
   // --- Public accessors for external audio (e.g. TTS) ---

@@ -35,18 +35,45 @@ export function useFightSounds() {
     return commentaryRef.current;
   }, []);
 
-  const onFightStart = useCallback((_f1Name?: string, _f2Name?: string, f1Animal?: string, f2Animal?: string) => {
+  const onFightStart = useCallback((_f1Name?: string, _f2Name?: string, f1Animal?: string, f2Animal?: string, f1Id?: string, f2Id?: string) => {
     const e = getEngine();
     const c = getCommentary();
+
+    // Revive engine in case it was killed by a page navigation
+    e.revive();
+
     e.stopCelebration();
     c.warmup();
     e.startAmbience();
-    // Animal roars as fighters are introduced (staggered)
-    if (f1Animal) schedule(() => e.playAnimalIntro(f1Animal), 300);
-    if (f2Animal) schedule(() => e.playAnimalIntro(f2Animal), 1200);
     e.playFightStart();
-    // Wait for bell + animal intros before commentary
-    schedule(() => c.playClip('intro'), 2000);
+
+    // Character intro sequence — spaced to avoid TTS overlap
+    // TTS durations: IT'S TIME 1.4s, fighter intros 5-10s, AND HIS OPPONENT 1.3s
+    // 0.3s: "IT'S TIME!" + crowd roar
+    schedule(() => {
+      c.playDirect('commentary/commentary-itstime-2');
+      e.playCrowdRoar();
+    }, 300);
+    // 3.0s: Left fighter intro TTS + whoosh
+    schedule(() => {
+      e.playWhoosh();
+      if (f1Id) c.playDirect(CommentaryEngine.fighterIntroKey(f1Id));
+    }, 3000);
+    // 10.5s: Left animal roar — after name (TTS is 5-10s, name is last word)
+    if (f1Animal) schedule(() => e.playAnimalIntro(f1Animal), 10500);
+    // 12.0s: "AND HIS OPPONENT" + whoosh
+    schedule(() => {
+      c.playDirect('commentary/commentary-intro-opponent');
+      e.playWhoosh();
+    }, 12000);
+    // 13.5s: Right fighter intro TTS
+    schedule(() => {
+      if (f2Id) c.playDirect(CommentaryEngine.fighterIntroKey(f2Id));
+    }, 13500);
+    // 21.0s: Right animal roar — after name
+    if (f2Animal) schedule(() => e.playAnimalIntro(f2Animal), 21000);
+    // 22.0s: VS crowd roar
+    schedule(() => e.playCrowdRoar(), 22000);
   }, [getEngine, getCommentary, schedule]);
 
   const onAttack = useCallback((damage: number, isCrit: boolean, attackerName?: string, moveName?: string) => {

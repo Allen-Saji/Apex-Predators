@@ -156,7 +156,22 @@ class CommentaryEngine {
       'commentary/commentary-move-razor-jaws-of-death',
     ];
 
-    const allKeys = [...allClips, ...moveClips];
+    // Fighter intro announcement clips
+    const introClips = [
+      'commentary/commentary-itstime-1',
+      'commentary/commentary-itstime-2',
+      'commentary/commentary-intro-opponent',
+      'commentary/commentary-intro-fighter-kodiak',
+      'commentary/commentary-intro-fighter-fang',
+      'commentary/commentary-intro-fighter-talon',
+      'commentary/commentary-intro-fighter-jaws',
+      'commentary/commentary-intro-fighter-mane',
+      'commentary/commentary-intro-fighter-venom',
+      'commentary/commentary-intro-fighter-kong',
+      'commentary/commentary-intro-fighter-razor',
+    ];
+
+    const allKeys = [...allClips, ...moveClips, ...introClips];
 
     await Promise.all(
       allKeys.map(async (name) => {
@@ -215,6 +230,15 @@ class CommentaryEngine {
   }
 
   private playEntry(entry: QueueEntry): void {
+    const engine = SoundEngine.getInstance();
+
+    // Don't play if engine is killed (navigated away)
+    if (engine.isKilled()) {
+      this.queue = [];
+      this.playing = false;
+      return;
+    }
+
     let buffer: AudioBuffer | undefined;
 
     if (entry.type === 'clip') {
@@ -233,7 +257,6 @@ class CommentaryEngine {
 
     this.playing = true;
 
-    const engine = SoundEngine.getInstance();
     const ctx = engine.getContext();
     const source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -255,6 +278,20 @@ class CommentaryEngine {
       try { this.currentSource.stop(); } catch { /* already stopped */ }
       this.currentSource = null;
     }
+  }
+
+  /** Play a specific clip key directly — stops current, clears queue */
+  playDirect(clipKey: string): void {
+    if (!this.enabled || typeof window === 'undefined') return;
+    this.stopCurrent();
+    this.queue = [];
+    this.playing = false;
+    this.enqueue({ type: 'clip', clipKey, priority: 'high' });
+  }
+
+  /** Get the intro clip key for a fighter by ID */
+  static fighterIntroKey(fighterId: string): string {
+    return `commentary/commentary-intro-fighter-${fighterId}`;
   }
 
   stop(): void {
