@@ -7,6 +7,7 @@ import { Fighter, Turn } from '@/lib/types';
 import { useFight } from '@/hooks/useFight';
 import { useFightSounds } from '@/hooks/useFightSounds';
 import SoundEngine from '@/lib/sound-engine';
+import CommentaryEngine from '@/lib/commentary';
 import HealthBar from './HealthBar';
 import DamageNumber from './DamageNumber';
 import ArenaBackground from './ArenaBackground';
@@ -32,8 +33,8 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
 
   const clearCommentary = useCallback(() => setCommentaryEvent(null), []);
 
-  const wrappedOnFightStart = useCallback((f1?: string, f2?: string, f1Animal?: string, f2Animal?: string) => {
-    onFightStart(f1, f2, f1Animal, f2Animal);
+  const wrappedOnFightStart = useCallback((f1?: string, f2?: string, f1Animal?: string, f2Animal?: string, f1Id?: string, f2Id?: string) => {
+    onFightStart(f1, f2, f1Animal, f2Animal, f1Id, f2Id);
     fireCommentary('FIGHT!', 'intro');
   }, [onFightStart, fireCommentary]);
 
@@ -65,7 +66,7 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
   const {
     turns, turnIndex, running, done, hpLeft, hpRight, log,
     showDamage, hitSide, attackSide, screenShake, ko, koPhase, introPhase,
-    startFight, startLive, winner,
+    startFight, startLive, cancelFight, winner,
   } = useFight(left, right, { onFightStart: wrappedOnFightStart, onAttack: wrappedOnAttack, onKo: wrappedOnKo, onFightEnd }, presetTurns, liveMode);
 
   const handleStartFight = useCallback(() => {
@@ -73,6 +74,13 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
     setReactionsLoaded(false);
     startFight();
   }, [startFight]);
+
+  const handleCancelFight = useCallback(() => {
+    cancelFight();
+    SoundEngine.getInstance().stopAll();
+    CommentaryEngine.getInstance().stop();
+    setShowTrashTalk(true);
+  }, [cancelFight]);
 
   // Auto-start when presetTurns are provided and autoStart is set
   const autoStarted = useRef(false);
@@ -133,10 +141,17 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
         animate={screenShake ? { x: [0, -10, 10, -8, 8, -4, 4, 0] } : {}}
         transition={{ duration: 0.4 }}
       >
-        {/* Arena header */}
-        <div className="text-center mb-4">
-          <span className="text-xs uppercase tracking-[0.3em] text-gray-500">Season 1 · The Jungle</span>
-        </div>
+        {/* Arena header — announcement style pre-fight, compact during fight */}
+        {!running && !done && !isKoActive ? (
+          <div className="text-center mb-6">
+            <div className="text-[10px] md:text-xs uppercase tracking-[0.5em] text-red-500/60 font-bold mb-1">Apex Predators Presents</div>
+            <div className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-white/30">Season 1 · The Bloodpit</div>
+          </div>
+        ) : (
+          <div className="text-center mb-4">
+            <span className="text-xs uppercase tracking-[0.3em] text-gray-500">Season 1 · The Bloodpit</span>
+          </div>
+        )}
 
         {/* Live mode brief intro flash */}
         <AnimatePresence>
@@ -212,7 +227,7 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
           )}
         </AnimatePresence>
 
-        {/* Intro overlay with spotlight sequence */}
+        {/* Intro overlay — Bruce Buffer style announcements */}
         <AnimatePresence>
           {introPhase && (
             <motion.div
@@ -224,117 +239,150 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
               {/* Dark base */}
               <div className="absolute inset-0 bg-[#050505]" />
 
-              {/* Animated spotlight — sweeps left → right → center */}
-              <motion.div
-                className="absolute inset-0 pointer-events-none"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
+              {/* Animated spotlight — shifts left→right with fighter intros */}
+              <motion.div className="absolute inset-0 pointer-events-none">
                 <motion.div
                   className="absolute inset-0"
                   animate={{
                     background: [
-                      `radial-gradient(ellipse 40% 70% at 30% 50%, ${left.color}30 0%, transparent 70%)`,
-                      `radial-gradient(ellipse 40% 70% at 30% 50%, ${left.color}30 0%, transparent 70%)`,
-                      `radial-gradient(ellipse 40% 70% at 70% 50%, ${right.color}30 0%, transparent 70%)`,
-                      `radial-gradient(ellipse 40% 70% at 70% 50%, ${right.color}30 0%, transparent 70%)`,
-                      `radial-gradient(ellipse 80% 80% at 50% 50%, rgba(255,255,255,0.08) 0%, transparent 70%)`,
+                      'radial-gradient(ellipse 80% 80% at 50% 40%, rgba(220,38,38,0.15) 0%, transparent 70%)',
+                      `radial-gradient(ellipse 60% 80% at 30% 50%, ${left.color}22 0%, transparent 70%)`,
+                      `radial-gradient(ellipse 60% 80% at 30% 50%, ${left.color}22 0%, transparent 70%)`,
+                      `radial-gradient(ellipse 60% 80% at 70% 50%, ${right.color}22 0%, transparent 70%)`,
+                      `radial-gradient(ellipse 60% 80% at 70% 50%, ${right.color}22 0%, transparent 70%)`,
+                      'radial-gradient(ellipse 90% 90% at 50% 50%, rgba(220,38,38,0.18) 0%, transparent 70%)',
                     ],
                   }}
-                  transition={{ duration: 3.5, times: [0, 0.3, 0.35, 0.6, 0.7], ease: 'easeInOut' }}
+                  transition={{ duration: 23, times: [0, 0.13, 0.5, 0.58, 0.92, 1], ease: 'easeInOut' }}
                 />
               </motion.div>
 
-              {/* Fighter intros + VS */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex items-center gap-4 md:gap-12">
-                  {/* Left fighter — spotlight first */}
-                  <motion.div
-                    className="text-center"
-                    initial={{ x: -120, opacity: 0, scale: 0.8 }}
-                    animate={{ x: 0, opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 80, damping: 15, delay: 0.2 }}
+              <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+
+                {/* "IT'S TIME!" slam (0s–2.5s) */}
+                <motion.div
+                  className="absolute"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: [0, 1.5, 1, 1, 0], opacity: [0, 1, 1, 1, 0] }}
+                  transition={{ duration: 2.5, times: [0, 0.1, 0.25, 0.8, 1] }}
+                >
+                  <div
+                    className="text-5xl sm:text-6xl md:text-8xl font-black uppercase text-red-500"
+                    style={{ textShadow: '0 0 60px rgba(220,38,38,0.8), 0 0 120px rgba(220,38,38,0.4)' }}
                   >
-                    {/* Spotlight ring glow */}
+                    IT&apos;S TIME!
+                  </div>
+                </motion.div>
+
+                {/* Fighter spotlights — horizontal layout */}
+                <div className="flex items-center w-full max-w-5xl">
+
+                  {/* LEFT FIGHTER — slides in at 3.0s (synced with TTS) */}
+                  <motion.div
+                    className="flex-1 flex flex-col items-center"
+                    initial={{ x: -60, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 60, damping: 12, delay: 3.0 }}
+                  >
                     <motion.div
-                      className="relative"
-                      animate={{ filter: ['brightness(1)', 'brightness(1.4)', 'brightness(1)'] }}
-                      transition={{ duration: 1.5, delay: 0.3 }}
+                      className="relative mb-4"
+                      animate={{ filter: ['brightness(0.4)', 'brightness(1.3)', 'brightness(1)'] }}
+                      transition={{ duration: 1.5, delay: 3.5 }}
                     >
                       <motion.div
-                        className="absolute -inset-2 rounded-xl"
-                        style={{ background: left.color, filter: 'blur(16px)' }}
+                        className="absolute -inset-4 rounded-2xl"
+                        style={{ background: left.color, filter: 'blur(24px)' }}
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: [0, 0.5, 0.2] }}
-                        transition={{ duration: 1.5, delay: 0.3 }}
+                        animate={{ opacity: [0, 0.8, 0.35] }}
+                        transition={{ duration: 2, delay: 3.5 }}
                       />
-                      <div className="w-28 h-28 md:w-40 md:h-40 relative rounded-xl overflow-hidden border-2 mb-3" style={{ borderColor: left.color }}>
-                        <Image src={left.image} alt={left.name} fill className="object-cover" style={{ objectPosition: left.focalPoint || "center center" }} />
+                      <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 relative rounded-2xl overflow-hidden border-2" style={{ borderColor: left.color }}>
+                        <Image src={left.image} alt={left.name} fill className="object-cover" style={{ objectPosition: left.focalPoint || 'center center' }} />
                       </div>
                     </motion.div>
+
+                    <motion.div className="text-xs uppercase tracking-[0.2em] mb-1" style={{ color: left.color }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.5 }}>
+                      The {left.animal}
+                    </motion.div>
+                    {/* NAME slam — synced with animal roar at 5s */}
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 }}
+                      className="font-black text-3xl sm:text-4xl md:text-5xl uppercase text-white"
+                      style={{ textShadow: `0 0 24px ${left.color}88` }}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+                      transition={{ type: 'tween', duration: 0.35, delay: 5.0 }}
                     >
-                      <div className="font-black text-xl md:text-3xl uppercase text-white">{left.name}</div>
-                      <div className="text-xs uppercase mt-0.5" style={{ color: left.color }}>{left.animal}</div>
-                      <div className="flex gap-2 justify-center mt-1 text-xs font-mono">
-                        <span className="text-green-400">{left.wins}W</span>
-                        <span className="text-red-400">{left.losses}L</span>
-                      </div>
+                      {left.name}
                     </motion.div>
                   </motion.div>
 
-                  {/* VS — appears after both fighters */}
+                  {/* VS — drops at 22.0s (synced with final crowd roar) */}
                   <motion.div
+                    className="mx-4 md:mx-8 shrink-0"
                     initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: [0, 1.3, 1], opacity: 1 }}
-                    transition={{ type: 'tween', duration: 0.5, ease: 'easeOut', delay: 2.2 }}
-                    className="text-4xl md:text-6xl font-black text-red-500"
-                    style={{ textShadow: '0 0 30px rgba(220,38,38,0.5)' }}
+                    animate={{ scale: [0, 1.4, 1], opacity: 1 }}
+                    transition={{ type: 'tween', duration: 0.5, delay: 22.0 }}
                   >
-                    VS
+                    <span
+                      className="text-5xl md:text-7xl font-black text-red-500"
+                      style={{ textShadow: '0 0 40px rgba(220,38,38,0.6)' }}
+                    >
+                      VS
+                    </span>
                   </motion.div>
 
-                  {/* Right fighter — spotlight second */}
+                  {/* RIGHT FIGHTER — slides in at 13.5s (synced with TTS) */}
                   <motion.div
-                    className="text-center"
-                    initial={{ x: 120, opacity: 0, scale: 0.8 }}
-                    animate={{ x: 0, opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 80, damping: 15, delay: 1.2 }}
+                    className="flex-1 flex flex-col items-center"
+                    initial={{ x: 60, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 60, damping: 12, delay: 13.5 }}
                   >
                     <motion.div
-                      className="relative"
-                      animate={{ filter: ['brightness(1)', 'brightness(1.4)', 'brightness(1)'] }}
-                      transition={{ duration: 1.5, delay: 1.3 }}
+                      className="relative mb-4"
+                      animate={{ filter: ['brightness(0.4)', 'brightness(1.3)', 'brightness(1)'] }}
+                      transition={{ duration: 1.5, delay: 14.0 }}
                     >
                       <motion.div
-                        className="absolute -inset-2 rounded-xl"
-                        style={{ background: right.color, filter: 'blur(16px)' }}
+                        className="absolute -inset-4 rounded-2xl"
+                        style={{ background: right.color, filter: 'blur(24px)' }}
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: [0, 0.5, 0.2] }}
-                        transition={{ duration: 1.5, delay: 1.3 }}
+                        animate={{ opacity: [0, 0.8, 0.35] }}
+                        transition={{ duration: 2, delay: 14.0 }}
                       />
-                      <div className="w-28 h-28 md:w-40 md:h-40 relative rounded-xl overflow-hidden border-2 mb-3" style={{ borderColor: right.color }}>
-                        <Image src={right.image} alt={right.name} fill className="object-cover" style={{ objectPosition: right.focalPoint || "center center" }} />
+                      <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 relative rounded-2xl overflow-hidden border-2" style={{ borderColor: right.color }}>
+                        <Image src={right.image} alt={right.name} fill className="object-cover" style={{ objectPosition: right.focalPoint || 'center center' }} />
                       </div>
                     </motion.div>
+
+                    <motion.div className="text-xs uppercase tracking-[0.2em] mb-1" style={{ color: right.color }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 15.0 }}>
+                      The {right.animal}
+                    </motion.div>
+                    {/* NAME slam — synced with animal roar at 21s */}
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 1.5 }}
+                      className="font-black text-3xl sm:text-4xl md:text-5xl uppercase text-white"
+                      style={{ textShadow: `0 0 24px ${right.color}88` }}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+                      transition={{ type: 'tween', duration: 0.35, delay: 15.5 }}
                     >
-                      <div className="font-black text-xl md:text-3xl uppercase text-white">{right.name}</div>
-                      <div className="text-xs uppercase mt-0.5" style={{ color: right.color }}>{right.animal}</div>
-                      <div className="flex gap-2 justify-center mt-1 text-xs font-mono">
-                        <span className="text-green-400">{right.wins}W</span>
-                        <span className="text-red-400">{right.losses}L</span>
-                      </div>
+                      {right.name}
                     </motion.div>
                   </motion.div>
+
                 </div>
+
+                {/* "AND HIS OPPONENT" flash at 12.0s */}
+                <motion.div
+                  className="absolute"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0, 1, 1, 0], y: [0, 0, 0, 0, -10] }}
+                  transition={{ duration: 15, delay: 0, times: [0, 0.79, 0.8, 0.87, 0.92] }}
+                >
+                  <div className="text-lg md:text-2xl font-bold uppercase tracking-[0.3em] text-white/70">
+                    And His Opponent
+                  </div>
+                </motion.div>
               </div>
             </motion.div>
           )}
@@ -574,9 +622,9 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
               {left.name}
             </span>
 
-            {/* HP bar — fades out during KO */}
+            {/* HP bar — only during fight, fades out during KO */}
             <AnimatePresence>
-              {!isKoActive && (
+              {(running || done) && !isKoActive && (
                 <motion.div className="w-full max-w-[200px]" exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
                   <HealthBar hp={hpLeft} maxHp={100} />
                 </motion.div>
@@ -586,7 +634,8 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
             <motion.div
               className={`relative w-32 h-32 md:w-44 md:h-44 rounded-xl overflow-hidden ${isLoser('left') && isKoActive ? 'grayscale' : ''}`}
               style={{
-                border: `2px solid ${left.color}44`,
+                border: `2px solid ${!running && !done ? left.color : left.color + '44'}`,
+                boxShadow: !running && !done ? `0 0 20px ${left.color}44` : 'none',
               }}
               animate={getFighterAnimate('left')}
               transition={getFighterTransition('left')}
@@ -601,6 +650,15 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
                 />
               )}
             </motion.div>
+
+            {/* Pre-fight: fighter stats */}
+            {!running && !done && !isKoActive && (
+              <div className="flex flex-col items-center mt-2 gap-0.5">
+                <span className="text-[10px] md:text-xs uppercase tracking-widest" style={{ color: left.color }}>The {left.animal}</span>
+                <span className="text-[9px] md:text-[10px] text-gray-500 font-mono">{left.wins}W-{left.losses}L · {left.kos} KO{left.kos !== 1 ? 's' : ''}</span>
+                <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-amber-400/60 font-bold">{left.specialTrait.name}</span>
+              </div>
+            )}
 
             <AnimatePresence>
               {showDamage && showDamage.side === 'left' && (
@@ -622,9 +680,9 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
               {right.name}
             </span>
 
-            {/* HP bar — fades out during KO */}
+            {/* HP bar — only during fight, fades out during KO */}
             <AnimatePresence>
-              {!isKoActive && (
+              {(running || done) && !isKoActive && (
                 <motion.div className="w-full max-w-[200px]" exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
                   <HealthBar hp={hpRight} maxHp={100} reverse />
                 </motion.div>
@@ -634,7 +692,8 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
             <motion.div
               className={`relative w-32 h-32 md:w-44 md:h-44 rounded-xl overflow-hidden ${isLoser('right') && isKoActive ? 'grayscale' : ''}`}
               style={{
-                border: `2px solid ${right.color}44`,
+                border: `2px solid ${!running && !done ? right.color : right.color + '44'}`,
+                boxShadow: !running && !done ? `0 0 20px ${right.color}44` : 'none',
                 transform: 'scaleX(-1)',
               }}
               animate={getFighterAnimate('right')}
@@ -650,6 +709,16 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
                 />
               )}
             </motion.div>
+
+            {/* Pre-fight: fighter stats */}
+            {!running && !done && !isKoActive && (
+              <div className="flex flex-col items-center mt-2 gap-0.5">
+                <span className="text-[10px] md:text-xs uppercase tracking-widest" style={{ color: right.color }}>The {right.animal}</span>
+                <span className="text-[9px] md:text-[10px] text-gray-500 font-mono">{right.wins}W-{right.losses}L · {right.kos} KO{right.kos !== 1 ? 's' : ''}</span>
+                <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-amber-400/60 font-bold">{right.specialTrait.name}</span>
+              </div>
+            )}
+
             <AnimatePresence>
               {showDamage && showDamage.side === 'right' && (
                 <DamageNumber key={`dmg-r-${turnIndex}`} {...showDamage} />
@@ -662,6 +731,16 @@ export default function FightViewer({ left, right, onBack, presetTurns, autoStar
 
         {/* Commentary overlay */}
         <CommentaryOverlay event={commentaryEvent} onClear={clearCommentary} />
+
+        {/* Cancel fight button — visible during fight/intro */}
+        {running && !done && !isKoActive && (
+          <button
+            onClick={handleCancelFight}
+            className="absolute top-4 left-4 z-[60] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg transition-all"
+          >
+            Cancel
+          </button>
+        )}
 
         {/* Sound toggles */}
         <div className="absolute top-4 right-4 flex gap-2 z-50">

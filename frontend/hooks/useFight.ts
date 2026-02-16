@@ -31,7 +31,7 @@ function generateFight(left: Fighter, right: Fighter): Turn[] {
 }
 
 export interface FightCallbacks {
-  onFightStart?: (f1Name?: string, f2Name?: string, f1Animal?: string, f2Animal?: string) => void;
+  onFightStart?: (f1Name?: string, f2Name?: string, f1Animal?: string, f2Animal?: string, f1Id?: string, f2Id?: string) => void;
   onAttack?: (damage: number, isCrit: boolean, attackerName?: string, moveName?: string) => void;
   onKo?: (winnerName?: string, loserName?: string) => void;
   onFightEnd?: () => void;
@@ -147,7 +147,7 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
     // Intro phase
     setIntroPhase(true);
     setRunning(true);
-    callbacks?.onFightStart?.(left.name, right.name, left.animal, right.animal);
+    callbacks?.onFightStart?.(left.name, right.name, left.animal, right.animal, left.id, right.id);
     const introTimer = setTimeout(() => {
       setIntroPhase(false);
       // Variable delays: small hits play fast, big hits need time for commentary
@@ -162,7 +162,7 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
         const t = setTimeout(() => playTurn(i, newFight), cumulative);
         timersRef.current.push(t);
       });
-    }, 4000);
+    }, 23000);
     timersRef.current.push(introTimer);
   }, [left, right, playTurn, presetTurns]);
 
@@ -249,11 +249,39 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
     liveProcessedRef.current = newCount;
   }, [liveMode, presetTurns?.length, playTurn]);
 
+  // Cancel / cleanup: kill all pending timers, reset state
+  const cancelFight = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+    setRunning(false);
+    setDone(false);
+    setIntroPhase(false);
+    setHpLeft(100);
+    setHpRight(100);
+    setLog([]);
+    setKo(null);
+    setKoPhase(null);
+    setShowDamage(null);
+    setHitSide(null);
+    setAttackSide(null);
+    setScreenShake(false);
+    setTurnIndex(-1);
+    callbacks?.onFightEnd?.();
+  }, [callbacks]);
+
+  // Clear all timers on unmount to prevent stale audio
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+    };
+  }, []);
+
   const winner = ko === 'left' ? right : ko === 'right' ? left : null;
 
   return {
     turns, turnIndex, running, done, hpLeft, hpRight, log,
     showDamage, hitSide, attackSide, screenShake, ko, koPhase, introPhase,
-    startFight, startLive, winner,
+    startFight, startLive, cancelFight, winner,
   };
 }
