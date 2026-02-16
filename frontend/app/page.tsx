@@ -5,139 +5,35 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import FighterShowcase from '@/components/fighters/FighterShowcase';
 import { fighters } from '@/lib/fighters';
-import { useArenaState, FightOutcome } from '@/hooks/useArenaState';
-import { useLiveFights } from '@/hooks/useLiveFight';
-import FightStageStepper from '@/components/arena/FightStageStepper';
 
-function NextFightSection() {
-  const { pool, fighter1, fighter2, status, fight, poolId } = useArenaState();
-  const liveFights = useLiveFights();
-  const liveFight = poolId !== undefined ? liveFights.get(String(poolId)) : undefined;
-
-  if (status === 'no-pools' || !fighter1 || !fighter2) return null;
-
-  // Resolved — show result
-  if (status === 'resolved' && pool) {
-    const winner = pool.winnerId === pool.fighter1Id ? fighter1 : fighter2;
-    const outcomeLabel = fight?.result.outcome === FightOutcome.KO ? 'KO' : 'Decision';
-    return (
-      <section>
-        <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
-          Latest Result
-        </h2>
-        <motion.div
-          className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
-          whileHover={{ borderColor: 'rgba(220,38,38,0.3)' }}
-        >
-          <div className="flex items-center justify-between">
-            <FighterThumb fighter={fighter1} isWinner={pool.winnerId === pool.fighter1Id} />
-            <div className="flex flex-col items-center gap-2">
-              <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
-              <span className="text-xs text-green-400 uppercase font-bold">{winner.name} wins &middot; {outcomeLabel}</span>
-              <Link
-                href="/arena"
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
-              >
-                Watch Replay
-              </Link>
-            </div>
-            <FighterThumb fighter={fighter2} isWinner={pool.winnerId === pool.fighter2Id} />
-          </div>
-        </motion.div>
-      </section>
-    );
-  }
-
-  // Closed — fight in progress
-  if (status === 'closed') {
-    return (
-      <section>
-        <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
-          <span className="relative inline-flex mr-3 h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span></span>Fight In Progress
-        </h2>
-        <motion.div
-          className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
-          whileHover={{ borderColor: 'rgba(220,38,38,0.3)' }}
-        >
-          <div className="flex items-center justify-between">
-            <FighterThumb fighter={fighter1} />
-            <div className="flex flex-col items-center gap-2">
-              <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
-              {liveFight?.stage ? (
-                <FightStageStepper currentStage={liveFight.stage} eta={liveFight.eta} variant="compact" />
-              ) : (
-                <span className="text-xs text-amber-400 uppercase">In progress...</span>
-              )}
-              {liveFight?.stage === 'streaming' && poolId !== undefined && (
-                <Link
-                  href={`/arena/${poolId}`}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
-                >
-                  Watch Live
-                </Link>
-              )}
-            </div>
-            <FighterThumb fighter={fighter2} />
-          </div>
-        </motion.div>
-      </section>
-    );
-  }
-
-  // Open — betting available
-  const closesAt = pool ? new Date(pool.closesAt * 1000) : null;
-  const isBettingOpen = pool ? Math.floor(Date.now() / 1000) < pool.closesAt : false;
+function DemoFightCTA() {
   return (
     <section>
       <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
-        <span className="relative inline-flex mr-3 h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>Next Fight
+        Try the Arena
       </h2>
       <motion.div
         className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
         whileHover={{ borderColor: 'rgba(220,38,38,0.3)' }}
       >
-        <div className="flex items-center justify-between">
-          <FighterThumb fighter={fighter1} />
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
-            {closesAt && isBettingOpen && (
-              <span className="text-xs text-gray-500 uppercase">
-                Betting closes {closesAt.toLocaleTimeString()}
-              </span>
-            )}
-            {!isBettingOpen && (
-              <span className="text-xs text-amber-400 uppercase font-bold">
-                Closing...
-              </span>
-            )}
-            {isBettingOpen && (
-              <Link
-                href="/betting"
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
-              >
-                Bet Now
-              </Link>
-            )}
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/20 border border-amber-500/30 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Demo Mode</span>
           </div>
-          <FighterThumb fighter={fighter2} />
+          <p className="text-gray-400 max-w-md">
+            Pick two fighters and watch them battle in a client-side simulation.
+            Live on-chain fights and betting coming soon.
+          </p>
+          <Link
+            href="/arena"
+            className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all hover:scale-105"
+          >
+            Try a Demo Fight
+          </Link>
         </div>
       </motion.div>
     </section>
-  );
-}
-
-function FighterThumb({ fighter, isWinner }: { fighter: { name: string; image: string; color: string; wins: number; losses: number; focalPoint?: string }; isWinner?: boolean }) {
-  return (
-    <div className="flex flex-col items-center gap-3 flex-1">
-      <div className={`w-20 h-20 md:w-28 md:h-28 relative rounded-xl overflow-hidden border-2 ${isWinner ? 'ring-2 ring-green-500' : ''}`} style={{ borderColor: fighter.color }}>
-        <Image src={fighter.image} alt={fighter.name} fill className="object-cover" style={{ objectPosition: fighter.focalPoint || 'center center' }} />
-      </div>
-      <div className="text-center">
-        <div className="font-black uppercase text-white">{fighter.name}</div>
-        <div className="text-xs text-gray-500">{fighter.wins}W-{fighter.losses}L</div>
-        {isWinner && <div className="text-xs text-green-400 font-bold">Winner</div>}
-      </div>
-    </div>
   );
 }
 
@@ -164,13 +60,13 @@ export default function HomePage() {
               href="/arena"
               className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all hover:scale-105"
             >
-              Watch a Fight
+              Try a Demo Fight
             </Link>
             <Link
-              href="/betting"
+              href="/fighters"
               className="px-8 py-3 bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider rounded-xl transition-all border border-white/10"
             >
-              Place a Bet
+              Meet the Fighters
             </Link>
           </div>
         </motion.div>
@@ -178,7 +74,7 @@ export default function HomePage() {
         <FighterShowcase />
       </section>
 
-      <NextFightSection />
+      <DemoFightCTA />
 
       {/* Fighter Grid Preview */}
       <section>
