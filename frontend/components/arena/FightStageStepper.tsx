@@ -8,8 +8,8 @@ const STAGES = [
   { key: 'creating_fight', label: 'Creating Fight' },
   { key: 'committing_seed', label: 'Committing Seed' },
   { key: 'waiting_reveal_delay', label: 'Waiting Reveal' },
-  { key: 'simulating', label: 'Simulating' },
-  { key: 'streaming', label: 'Streaming' },
+  { key: 'simulating', label: 'Running Fight' },
+  { key: 'streaming', label: 'Live' },
 ] as const;
 
 function getStageIndex(stage: string | null): number {

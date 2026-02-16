@@ -188,11 +188,19 @@ export default function ArenaDetailPage() {
     );
   }
 
-  // Watching simulation — use on-chain replay if available, else random
+  // Watching — live mode if pool closed + SSE active, else replay/sim
+  const isLiveWatch = watching && status === 'closed' && liveFight.isLive;
   if (watching && fighter1 && fighter2) {
     return (
       <div className="min-h-screen">
-        <FightViewer left={fighter1} right={fighter2} onBack={() => setWatching(false)} presetTurns={replayTurns ?? undefined} autoStart={!!replayTurns} />
+        <FightViewer
+          left={fighter1}
+          right={fighter2}
+          onBack={() => setWatching(false)}
+          presetTurns={isLiveWatch ? liveFight.turns : (replayTurns ?? undefined)}
+          autoStart={isLiveWatch || !!replayTurns}
+          liveMode={isLiveWatch}
+        />
       </div>
     );
   }
@@ -235,12 +243,14 @@ export default function ArenaDetailPage() {
               </div>
             </div>
 
-            <Link
-              href="/betting"
-              className="block w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-wider rounded-xl transition-all text-lg text-center"
-            >
-              Place Bet
-            </Link>
+            {Math.floor(Date.now() / 1000) < pool.closesAt && (
+              <Link
+                href="/betting"
+                className="block w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-wider rounded-xl transition-all text-lg text-center"
+              >
+                Place Bet
+              </Link>
+            )}
           </div>
         </motion.div>
       </div>
@@ -249,7 +259,7 @@ export default function ArenaDetailPage() {
 
   // Pool Closed — fight in progress or stuck
   if (status === 'closed' && pool && fighter1 && fighter2) {
-    // Live fight streaming — show FightViewer with real turns
+    // Live fight streaming — show FightViewer once turns arrive
     if (liveFight.isLive && liveFight.turns.length > 0) {
       return (
         <div className="min-h-screen">
@@ -257,6 +267,8 @@ export default function ArenaDetailPage() {
         </div>
       );
     }
+
+    const showWatchLive = liveFight.isLive && (liveFight.stage === 'streaming' || liveFight.stage === 'simulating');
 
     // Detect stuck pool: closesAt has long passed, no SSE data, no resolution
     const now = Math.floor(Date.now() / 1000);
@@ -295,6 +307,14 @@ export default function ArenaDetailPage() {
               </div>
               <FighterCard fighter={fighter2} />
             </div>
+            {showWatchLive && (
+              <button
+                onClick={() => setWatching(true)}
+                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-wider rounded-xl transition-all text-lg animate-pulse"
+              >
+                Watch Live
+              </button>
+            )}
             {isStuck && (
               <button
                 onClick={() => setWatching(true)}
