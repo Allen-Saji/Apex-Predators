@@ -1,10 +1,40 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useClaimWinnings } from '@/hooks/useContracts';
 
-export default function ClaimWinnings({ poolId, amount }: { poolId: bigint; amount: string }) {
+const DISPUTE_PERIOD = 3600; // 1 hour in seconds
+
+function useDisputeCountdown(resolvedAt: number): number {
+  const claimableAt = resolvedAt + DISPUTE_PERIOD;
+  const [remaining, setRemaining] = useState(() =>
+    Math.max(0, claimableAt - Math.floor(Date.now() / 1000))
+  );
+
+  useEffect(() => {
+    if (remaining <= 0) return;
+    const id = setInterval(() => {
+      const r = Math.max(0, claimableAt - Math.floor(Date.now() / 1000));
+      setRemaining(r);
+      if (r <= 0) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [claimableAt]);
+
+  return remaining;
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s.toString().padStart(2, '0')}s`;
+}
+
+export default function ClaimWinnings({ poolId, amount, resolvedAt }: { poolId: bigint; amount: string; resolvedAt: number }) {
   const { claim, isPending, isSuccess, error } = useClaimWinnings();
+  const remaining = useDisputeCountdown(resolvedAt);
+  const inDisputePeriod = remaining > 0;
 
   if (isSuccess) {
     return (
@@ -23,13 +53,22 @@ export default function ClaimWinnings({ poolId, amount }: { poolId: bigint; amou
     <div>
       <motion.button
         onClick={() => claim(poolId)}
-        disabled={isPending}
-        className="w-full py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white font-black uppercase tracking-wider rounded-xl transition-all text-lg"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        disabled={isPending || inDisputePeriod}
+        className="w-full py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 disabled:text-gray-400 text-white font-black uppercase tracking-wider rounded-xl transition-all text-lg"
+        whileHover={!inDisputePeriod ? { scale: 1.02 } : {}}
+        whileTap={!inDisputePeriod ? { scale: 0.98 } : {}}
       >
-        {isPending ? 'Claiming...' : `Claim ${amount} MON`}
+        {isPending
+          ? 'Claiming...'
+          : inDisputePeriod
+            ? `Claimable in ${formatTime(remaining)}`
+            : `Claim ${amount} MON`}
       </motion.button>
+      {inDisputePeriod && (
+        <div className="text-xs text-gray-500 mt-2 text-center">
+          Dispute period active — claims open after resolution cooldown
+        </div>
+      )}
       {error && (
         <div className="text-xs text-red-400 mt-2">
           {(error as any)?.shortMessage || error.message || 'Failed to claim'}
