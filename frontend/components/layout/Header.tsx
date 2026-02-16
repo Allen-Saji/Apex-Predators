@@ -12,6 +12,7 @@ const BASE_NAV_ITEMS = [
   { href: '/fighters', label: 'Fighters' },
   { href: '/arena', label: 'Arena' },
   { href: '/betting', label: 'Betting' },
+  { href: '/info', label: 'Info' },
 ];
 
 export default function Header() {
@@ -31,6 +32,7 @@ export default function Header() {
             <span className="text-red-600">APEX</span>{' '}
             <span className="text-white/90">PREDATORS</span>
           </span>
+          <span className="text-[9px] font-bold uppercase tracking-wider bg-red-600/20 text-red-400 border border-red-500/30 rounded px-1.5 py-0.5 leading-none">Beta</span>
         </Link>
 
         {/* Desktop nav */}
