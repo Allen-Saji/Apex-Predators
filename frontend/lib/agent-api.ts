@@ -1,4 +1,5 @@
-const BASE_URL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:3004';
+export const AGENT_API_URL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:3004';
+const BASE_URL = AGENT_API_URL;
 
 async function post<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {

@@ -7,8 +7,7 @@ import { fighters } from '@/lib/fighters';
 import { useOwner } from '@/hooks/useContracts';
 import { useLiveFights } from '@/hooks/useLiveFight';
 import FightStageStepper from '@/components/arena/FightStageStepper';
-
-const API = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:3004';
+import { AGENT_API_URL as API } from '@/lib/agent-api';
 
 type FightResult = {
   winner: string;

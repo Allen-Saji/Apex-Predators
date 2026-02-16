@@ -3,7 +3,7 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import { Turn } from '@/lib/types';
 
-const AGENT_API = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:3004';
+import { AGENT_API_URL as AGENT_API } from '@/lib/agent-api';
 
 // Backend TurnResult shape (f1/f2 based)
 interface BackendTurnResult {
@@ -109,6 +109,7 @@ class LiveFightStore {
   private listeners = new Set<Listener>();
   private es: EventSource | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectDelay = 3000;
   private refCount = 0;
 
   subscribe(listener: Listener): () => void {
@@ -210,9 +211,14 @@ class LiveFightStore {
       }, 10000);
     });
 
+    es.onopen = () => {
+      this.reconnectDelay = 3000; // reset on successful connection
+    };
+
     es.onerror = () => {
       this.cleanupConnection();
-      this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+      this.reconnectTimer = setTimeout(() => this.connect(), this.reconnectDelay);
+      this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000); // backoff up to 30s
     };
   }
 

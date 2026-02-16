@@ -118,13 +118,14 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
         timersRef.current.push(t_cine, t_ann, t_settle);
 
         // Fade out ambience after KO
-        setTimeout(() => callbacks?.onFightEnd?.(), 3000);
+        const t_end = setTimeout(() => callbacks?.onFightEnd?.(), 3000);
+        timersRef.current.push(t_end);
       }, 800);
       timersRef.current.push(t6);
     }
 
     timersRef.current.push(t1, t2, t3, t5);
-  }, []);
+  }, [left, right, callbacks]);
 
   const startFight = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
@@ -203,7 +204,8 @@ export function useFight(left: Fighter, right: Fighter, callbacks?: FightCallbac
         const t_ann = setTimeout(() => setKoPhase('announce'), 1500);
         const t_settle = setTimeout(() => { setKoPhase('settle'); setDone(true); }, 3000);
         timersRef.current.push(t_cine, t_ann, t_settle);
-        setTimeout(() => callbacks?.onFightEnd?.(), 3000);
+        const t_end = setTimeout(() => callbacks?.onFightEnd?.(), 3000);
+        timersRef.current.push(t_end);
       }
     } else {
       setHpLeft(100);

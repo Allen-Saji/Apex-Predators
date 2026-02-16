@@ -46,6 +46,7 @@ function decodeTurnLog(
     const isCrit = parseInt(hex.slice(offset + 4, offset + 6), 16) !== 0;
 
     // attacker 1 = fighter1 (left), 2 = fighter2 (right)
+    if (attackerByte !== 1 && attackerByte !== 2) continue; // skip corrupted turns
     const attacker: 'left' | 'right' = attackerByte === 1 ? 'left' : 'right';
     const defender: 'left' | 'right' = attacker === 'left' ? 'right' : 'left';
     const attackerFighter = attacker === 'left' ? fighter1 : fighter2;

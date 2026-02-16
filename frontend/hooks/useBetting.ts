@@ -13,23 +13,22 @@ export function useBetting() {
   const placeBet = async (fightId: string, fighterId: string, amount: number) => {
     if (isConnected) {
       // Use real contract — poolId and fighterId as bigints
+      // Note: wagmi's writeContract is async but result is tracked via isPending/isSuccess
       placeBetOnChain(BigInt(fightId), BigInt(fighterId), amount.toString());
-      return true;
+      return;
     }
     // Fallback mock
     setIsPlacingBet(true);
     await new Promise((r) => setTimeout(r, 1500));
     setIsPlacingBet(false);
-    return true;
   };
 
   const claimWinnings = async (fightId: string) => {
     if (isConnected) {
       claimOnChain(BigInt(fightId));
-      return true;
+      return;
     }
     await new Promise((r) => setTimeout(r, 1500));
-    return true;
   };
 
   return { placeBet, claimWinnings, isPlacingBet: isPlacingBet || isBetPending };
