@@ -42,6 +42,46 @@ function Countdown({ closesAt }: { closesAt: number }) {
   );
 }
 
+function FightEtaBadge({ stage, eta }: { stage: string | null; eta: number | null }) {
+  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+
+  useState(() => {
+    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(id);
+  });
+
+  const remaining = eta ? Math.max(0, eta - now) : 0;
+
+  // Determine label + value based on stage
+  let label: string;
+  let value: string;
+
+  if (stage === 'waiting_reveal_delay' && remaining > 0) {
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    label = 'Fight starts in';
+    value = m > 0 ? `~${m}m ${s}s` : `~${s}s`;
+  } else if (stage === 'simulating') {
+    label = 'Fight starts in';
+    value = 'Seconds...';
+  } else if (stage === 'streaming') {
+    label = 'Status';
+    value = 'LIVE NOW';
+  } else if (stage === 'closing_pool' || stage === 'creating_fight' || stage === 'committing_seed') {
+    label = 'Fight starts in';
+    value = '~5-6 min';
+  } else {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-center">
+      <div className="text-[10px] uppercase tracking-widest text-amber-500/70 mb-0.5">{label}</div>
+      <div className="text-lg font-mono font-bold text-amber-400">{value}</div>
+    </div>
+  );
+}
+
 function FighterCard({ fighter, label }: { fighter: Fighter; label?: string }) {
   return (
     <div className="flex flex-col items-center gap-3 flex-1">
@@ -118,8 +158,20 @@ export default function ArenaDetailPage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-400 text-lg animate-pulse">Loading fight...</div>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="h-4 w-24 bg-white/10 rounded animate-pulse mb-6" />
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 animate-pulse space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="h-5 w-20 bg-white/10 rounded" />
+            <div className="h-5 w-16 bg-white/10 rounded" />
+          </div>
+          <div className="flex items-center justify-center gap-8">
+            <div className="w-24 h-24 rounded-xl bg-white/10" />
+            <div className="h-8 w-10 bg-white/10 rounded" />
+            <div className="w-24 h-24 rounded-xl bg-white/10" />
+          </div>
+          <div className="h-64 bg-white/5 rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -210,14 +262,6 @@ export default function ArenaDetailPage() {
     const now = Math.floor(Date.now() / 1000);
     const isStuck = !liveFight.isLive && pool.closesAt > 0 && now - pool.closesAt > 600; // 10 min past close + no SSE = likely stuck
 
-    // Determine status message from SSE progress
-    let statusMessage = 'Waiting for result...';
-    if (liveFight.isLive && liveFight.progressMessage) {
-      statusMessage = liveFight.progressMessage;
-    } else if (liveFight.isLive) {
-      statusMessage = 'Fight starting soon...';
-    }
-
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         {backButton}
@@ -238,13 +282,14 @@ export default function ArenaDetailPage() {
                     This fight appears to have stalled during resolution.
                   </div>
                 ) : liveFight.isLive && liveFight.stage ? (
-                  <FightStageStepper currentStage={liveFight.stage} eta={liveFight.eta} variant="full" />
+                  <>
+                    <FightStageStepper currentStage={liveFight.stage} eta={liveFight.eta} variant="full" />
+                    <FightEtaBadge stage={liveFight.stage} eta={liveFight.eta} />
+                  </>
                 ) : (
                   <>
                     <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
-                    <div className="text-sm text-gray-400">
-                      {statusMessage}
-                    </div>
+                    <div className="text-sm text-gray-400">Preparing fight...</div>
                   </>
                 )}
               </div>

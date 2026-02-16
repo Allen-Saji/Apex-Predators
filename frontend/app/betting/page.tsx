@@ -191,7 +191,27 @@ export default function BettingPage() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-gray-400 text-lg animate-pulse">Loading betting pools...</div>
+        <div className="mb-8">
+          <div className="h-12 w-72 bg-white/10 rounded animate-pulse mb-2" />
+          <div className="h-5 w-56 bg-white/5 rounded animate-pulse" />
+        </div>
+        <div className="space-y-6">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-6 animate-pulse space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-24 bg-white/10 rounded" />
+                <div className="h-4 w-32 bg-white/10 rounded" />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 h-16 bg-white/10 rounded-xl" />
+                <div className="h-6 w-8 bg-white/10 rounded" />
+                <div className="flex-1 h-16 bg-white/10 rounded-xl" />
+              </div>
+              <div className="h-3 w-full bg-white/5 rounded-full" />
+              <div className="h-10 w-full bg-white/10 rounded-xl" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
