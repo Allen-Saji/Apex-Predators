@@ -27,9 +27,6 @@ export default function FighterProfile({ fighter }: { fighter: Fighter }) {
   const winRate = fighter.wins + fighter.losses > 0
     ? Math.round((fighter.wins / (fighter.wins + fighter.losses)) * 100)
     : 0;
-  const avgDmg = fighter.wins + fighter.losses > 0
-    ? Math.round(fighter.damageDealt / (fighter.wins + fighter.losses))
-    : 0;
   const maxMoveDmg = Math.max(...fighter.moves.map((m) => m.maxDamage));
 
   return (
@@ -102,14 +99,12 @@ export default function FighterProfile({ fighter }: { fighter: Fighter }) {
         className="relative -mt-6 z-10 max-w-5xl mx-auto px-4"
       >
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: 'Wins', value: fighter.wins, color: 'text-green-400' },
               { label: 'Losses', value: fighter.losses, color: 'text-red-400' },
               { label: 'KOs', value: fighter.kos, color: 'text-yellow-400' },
               { label: 'Win Rate', value: `${winRate}%`, color: 'text-white' },
-              { label: 'Avg Dmg', value: avgDmg, color: 'text-white' },
-              { label: 'Total Dmg', value: fighter.damageDealt.toLocaleString(), color: 'text-white' },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className={`text-2xl font-black font-mono ${s.color}`}>{s.value}</div>
