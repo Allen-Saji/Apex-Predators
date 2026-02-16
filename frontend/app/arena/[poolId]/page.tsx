@@ -10,7 +10,7 @@ import { useReadContract } from 'wagmi';
 import { CONTRACTS, BETTING_POOL_ABI } from '@/lib/contracts';
 import { useLiveFight } from '@/hooks/useLiveFight';
 import { PoolStatus, FightOutcome } from '@/hooks/useArenaState';
-import FightViewer from '@/components/arena/FightViewer';
+import FightViewer from '@/components/fight/FightViewer';
 import FightStageStepper from '@/components/arena/FightStageStepper';
 import { Fighter } from '@/lib/types';
 import { fighters } from '@/lib/fighters';

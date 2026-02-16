@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import { useAccount } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
-import WalletConnect from '@/components/common/WalletConnect';
+import WalletConnect from '@/components/ui/WalletConnect';
 import { useOwner } from '@/hooks/useContracts';
 
 const BASE_NAV_ITEMS = [

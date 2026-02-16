@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Fighter } from '@/lib/types';
 import { fighters } from '@/lib/fighters';
-import FightViewer from '@/components/arena/FightViewer';
+import FightViewer from '@/components/fight/FightViewer';
 import { FistIcon, LightningIcon } from '@/components/icons';
 
 export default function FighterProfile({ fighter }: { fighter: Fighter }) {
