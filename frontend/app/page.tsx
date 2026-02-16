@@ -6,9 +6,13 @@ import { motion } from 'framer-motion';
 import FighterShowcase from '@/components/fighters/FighterShowcase';
 import { fighters } from '@/lib/fighters';
 import { useArenaState, FightOutcome } from '@/hooks/useArenaState';
+import { useLiveFights } from '@/hooks/useLiveFight';
+import FightStageStepper from '@/components/arena/FightStageStepper';
 
 function NextFightSection() {
-  const { pool, fighter1, fighter2, status, fight } = useArenaState();
+  const { pool, fighter1, fighter2, status, fight, poolId } = useArenaState();
+  const liveFights = useLiveFights();
+  const liveFight = poolId !== undefined ? liveFights.get(String(poolId)) : undefined;
 
   if (status === 'no-pools' || !fighter1 || !fighter2) return null;
 
@@ -59,7 +63,19 @@ function NextFightSection() {
             <FighterThumb fighter={fighter1} />
             <div className="flex flex-col items-center gap-2">
               <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
-              <span className="text-xs text-amber-400 uppercase">In progress...</span>
+              {liveFight?.stage ? (
+                <FightStageStepper currentStage={liveFight.stage} eta={liveFight.eta} variant="compact" />
+              ) : (
+                <span className="text-xs text-amber-400 uppercase">In progress...</span>
+              )}
+              {liveFight?.stage === 'streaming' && poolId !== undefined && (
+                <Link
+                  href={`/arena/${poolId}`}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+                >
+                  Watch Live
+                </Link>
+              )}
             </div>
             <FighterThumb fighter={fighter2} />
           </div>

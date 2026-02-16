@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { motion } from 'framer-motion';
 import { fighters } from '@/lib/fighters';
 import { useOwner } from '@/hooks/useContracts';
+import { useLiveFights } from '@/hooks/useLiveFight';
+import FightStageStepper from '@/components/arena/FightStageStepper';
 
-const API = 'http://localhost:3004';
+const API = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:3004';
 
 type FightResult = {
   winner: string;
@@ -18,52 +20,35 @@ type FightResult = {
 };
 
 type ArenaStatus = {
-  activeFight: string | null;
-  autoMode: boolean;
-  autoInterval?: number;
-  totalFightsRun?: number;
+  activeFight: { fighter1Id: string; fighter2Id: string; poolId: string; stage: string } | null;
+  autoModeEnabled: boolean;
+  totalEvents: number;
 };
 
 type ArenaEvent = {
   type: string;
-  fighter1?: string;
-  fighter2?: string;
-  winner?: string;
-  timestamp: string;
-  [key: string]: unknown;
+  timestamp: number;
+  data: Record<string, any>;
 };
+
+/** Map on-chain fighter ID (e.g. "5") to display name */
+function getFighterDisplayName(idOrName: string): string {
+  // Try as on-chain 1-indexed ID
+  const num = parseInt(idOrName, 10);
+  if (!isNaN(num) && num >= 1 && num <= fighters.length) {
+    return fighters[num - 1].name;
+  }
+  // Try as personality ID
+  const match = fighters.find((f) => f.id === idOrName);
+  if (match) return match.name;
+  return idOrName;
+}
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
   const { data: owner, isLoading: ownerLoading } = useOwner();
 
-  if (ownerLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <span className="inline-block w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isConnected) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <h1 className="text-2xl font-black uppercase text-white">Connect Wallet</h1>
-        <p className="text-gray-400">Connect your wallet to access the admin panel.</p>
-      </div>
-    );
-  }
-
-  if (address?.toLowerCase() !== owner?.toLowerCase()) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <h1 className="text-2xl font-black uppercase text-red-500">Unauthorized</h1>
-        <p className="text-gray-400">Only the contract owner can access this page.</p>
-      </div>
-    );
-  }
-
-  // Fight form
+  // All hooks must be called before any early returns
   const [fighter1, setFighter1] = useState(fighters[0].id);
   const [fighter2, setFighter2] = useState(fighters[1].id);
   const [duration, setDuration] = useState('0');
@@ -72,23 +57,28 @@ export default function AdminPage() {
   const [fightResult, setFightResult] = useState<FightResult | null>(null);
   const [fightError, setFightError] = useState('');
 
-  // Auto mode
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [autoInterval, setAutoInterval] = useState('5');
   const [autoLoading, setAutoLoading] = useState(false);
+  const autoSyncedRef = useRef(false);
 
-  // Status
   const [status, setStatus] = useState<ArenaStatus | null>(null);
-
-  // Events
   const [events, setEvents] = useState<ArenaEvent[]>([]);
+  const liveFights = useLiveFights();
 
   // Poll status
   useEffect(() => {
     const poll = () => {
       fetch(`${API}/api/arena/status`)
         .then((r) => r.json())
-        .then(setStatus)
+        .then((data: ArenaStatus) => {
+          setStatus(data);
+          // Sync auto mode state from server on first successful poll
+          if (!autoSyncedRef.current) {
+            autoSyncedRef.current = true;
+            setAutoEnabled(data.autoModeEnabled);
+          }
+        })
         .catch(() => {});
     };
     poll();
@@ -152,7 +142,71 @@ export default function AdminPage() {
     }
   }, [autoEnabled, autoInterval]);
 
-  const getFighterName = (id: string) => fighters.find((f) => f.id === id)?.name || id;
+  // Early returns AFTER all hooks
+  if (ownerLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <span className="inline-block w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <h1 className="text-2xl font-black uppercase text-white">Connect Wallet</h1>
+        <p className="text-gray-400">Connect your wallet to access the admin panel.</p>
+      </div>
+    );
+  }
+
+  if (address?.toLowerCase() !== owner?.toLowerCase()) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <h1 className="text-2xl font-black uppercase text-red-500">Unauthorized</h1>
+        <p className="text-gray-400">Only the contract owner can access this page.</p>
+      </div>
+    );
+  }
+
+  // Format active fight display
+  const activeFightDisplay = (() => {
+    if (!status?.activeFight) return 'None';
+    const af = status.activeFight;
+    const f1 = getFighterDisplayName(af.fighter1Id);
+    const f2 = getFighterDisplayName(af.fighter2Id);
+    const stageLabel = af.stage.replace(/_/g, ' ');
+    return `${f1} vs ${f2} (${stageLabel})`;
+  })();
+
+  // Format event display
+  const getEventSummary = (event: ArenaEvent): string | null => {
+    const d = event.data;
+    switch (event.type) {
+      case 'pool_created':
+        return `${d.f1 || ''} vs ${d.f2 || ''} — Pool #${d.poolId || ''}`;
+      case 'pool_closed':
+        return `Pool #${d.poolId || ''} closed`;
+      case 'fight_created':
+        return `Fight #${d.fightId || ''} created for pool #${d.poolId || ''}`;
+      case 'seed_committed':
+        return `Seed committed for fight #${d.fightId || ''}`;
+      case 'fight_resolved': {
+        const winner = getFighterDisplayName(d.winnerId || '');
+        return `${winner} wins by ${d.outcome || '?'} (${d.totalTurns || '?'} turns)`;
+      }
+      case 'trash_talk':
+        return `${getFighterDisplayName(d.fighter || '')}: "${(d.text || '').slice(0, 80)}${(d.text || '').length > 80 ? '...' : ''}"`;
+      case 'reaction':
+        return `${getFighterDisplayName(d.fighter || '')} ${d.won ? '(winner)' : '(loser)'}: "${(d.text || '').slice(0, 80)}..."`;
+      case 'auto_mode':
+        return d.enabled ? `Started (${d.intervalMinutes}m interval)` : 'Stopped';
+      case 'error':
+        return d.error || 'Unknown error';
+      default:
+        return JSON.stringify(d).slice(0, 100);
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-10">
@@ -231,11 +285,25 @@ export default function AdminPage() {
           </div>
 
           {/* Stage / loading */}
-          {fightStage && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-gray-400">
-              {fighting && (
+          {fighting && (() => {
+            const liveFight = status?.activeFight?.poolId
+              ? liveFights.get(status.activeFight.poolId)
+              : undefined;
+            const sseStage = liveFight?.stage ?? status?.activeFight?.stage ?? null;
+            return sseStage ? (
+              <div className="mt-4">
+                <FightStageStepper currentStage={sseStage} eta={liveFight?.eta ?? null} variant="compact" />
+              </div>
+            ) : (
+              <div className="mt-4 flex items-center gap-2 text-sm text-gray-400">
                 <span className="inline-block w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-              )}
+                {fightStage}
+              </div>
+            );
+          })()}
+          {!fighting && fightStage && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-green-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
               {fightStage}
             </div>
           )}
@@ -257,11 +325,11 @@ export default function AdminPage() {
               <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase tracking-wider text-gray-500">Winner</span>
-                  <span className="font-black text-green-400 uppercase">{getFighterName(fightResult.winner)}</span>
+                  <span className="font-black text-green-400 uppercase">{getFighterDisplayName(fightResult.winner)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase tracking-wider text-gray-500">Loser</span>
-                  <span className="font-bold text-red-400 uppercase">{getFighterName(fightResult.loser)}</span>
+                  <span className="font-bold text-red-400 uppercase">{getFighterDisplayName(fightResult.loser)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase tracking-wider text-gray-500">Method</span>
@@ -279,7 +347,7 @@ export default function AdminPage() {
                   <span className="text-xs uppercase tracking-wider text-gray-500">Reactions</span>
                   {Object.entries(fightResult.reactions).map(([fighter, reaction]) => (
                     <div key={fighter} className="bg-white/5 border border-white/10 rounded-lg p-3">
-                      <span className="text-xs font-bold text-red-400 uppercase">{getFighterName(fighter)}</span>
+                      <span className="text-xs font-bold text-red-400 uppercase">{getFighterDisplayName(fighter)}</span>
                       <p className="text-sm text-gray-300 mt-1">{reaction}</p>
                     </div>
                   ))}
@@ -344,20 +412,29 @@ export default function AdminPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Active Fight</span>
-                  <span className="text-white font-mono">{status.activeFight || 'None'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Auto Mode</span>
-                  <span className={status.autoMode ? 'text-green-400' : 'text-gray-500'}>
-                    {status.autoMode ? `ON (${status.autoInterval}m)` : 'OFF'}
+                  <span className="text-white font-mono text-right max-w-[60%]">
+                    {activeFightDisplay}
                   </span>
                 </div>
-                {status.totalFightsRun !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Fights Run</span>
-                    <span className="text-white font-mono">{status.totalFightsRun}</span>
-                  </div>
-                )}
+                {status.activeFight && (() => {
+                  const lf = liveFights.get(status.activeFight.poolId);
+                  const sseStage = lf?.stage ?? status.activeFight.stage;
+                  return (
+                    <div className="mt-2 pt-2 border-t border-white/5">
+                      <FightStageStepper currentStage={sseStage} eta={lf?.eta ?? null} variant="compact" />
+                    </div>
+                  );
+                })()}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Auto Mode</span>
+                  <span className={status.autoModeEnabled ? 'text-green-400' : 'text-gray-500'}>
+                    {status.autoModeEnabled ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Total Events</span>
+                  <span className="text-white font-mono">{status.totalEvents}</span>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-gray-500">Connecting...</p>
@@ -384,21 +461,12 @@ export default function AdminPage() {
                 className="bg-white/5 border border-white/5 rounded-lg px-4 py-3 text-sm"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-red-400 uppercase">{event.type}</span>
+                  <span className="text-xs font-bold text-red-400 uppercase">{event.type.replace(/_/g, ' ')}</span>
                   <span className="text-xs text-gray-600 font-mono">
                     {new Date(event.timestamp).toLocaleTimeString()}
                   </span>
                 </div>
-                {event.fighter1 && event.fighter2 && (
-                  <span className="text-gray-300">
-                    {getFighterName(event.fighter1)} vs {getFighterName(event.fighter2)}
-                    {event.winner && (
-                      <span className="text-green-400 ml-2">
-                        Winner: {getFighterName(event.winner as string)}
-                      </span>
-                    )}
-                  </span>
-                )}
+                <span className="text-gray-300">{getEventSummary(event)}</span>
               </div>
             ))
           )}
