@@ -23,6 +23,7 @@ class SoundEngine {
   private initialized = false;
   private cache = new Map<string, AudioBuffer>();
   private preloaded = false;
+  private pendingTimers = new Set<ReturnType<typeof setTimeout>>();
 
   static getInstance(): SoundEngine {
     if (!SoundEngine.instance) {
@@ -101,9 +102,17 @@ class SoundEngine {
 
   // --- Sound methods ---
 
+  private schedule(fn: () => void, ms: number): void {
+    const id = setTimeout(() => {
+      this.pendingTimers.delete(id);
+      fn();
+    }, ms);
+    this.pendingTimers.add(id);
+  }
+
   playFightStart(): void {
     this.playBuffer('bell-start');
-    setTimeout(() => this.playCrowdRoar(), 400);
+    this.schedule(() => this.playCrowdRoar(), 400);
   }
 
   playHit(damage: number, isCrit: boolean): void {
@@ -194,7 +203,7 @@ class SoundEngine {
     this.ambienceNode.gain.gain.cancelScheduledValues(now);
     this.ambienceNode.gain.gain.linearRampToValueAtTime(0.001, now + 2);
     const source = this.ambienceNode.source;
-    setTimeout(() => {
+    this.schedule(() => {
       try { source.stop(); } catch { /* already stopped */ }
     }, 2500);
     this.ambienceNode = null;
@@ -204,6 +213,14 @@ class SoundEngine {
     if (!this.ambienceNode) return;
     try { this.ambienceNode.source.stop(); } catch { /* ok */ }
     this.ambienceNode = null;
+  }
+
+  /** Stop everything: ambience, celebration, and all pending scheduled sounds */
+  stopAll(): void {
+    for (const id of this.pendingTimers) clearTimeout(id);
+    this.pendingTimers.clear();
+    this.stopAmbience();
+    this.stopCelebration();
   }
 
   // --- Public accessors for external audio (e.g. TTS) ---

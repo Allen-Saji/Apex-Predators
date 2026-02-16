@@ -8,8 +8,18 @@ import type { CommentaryCategory } from '@/lib/commentary';
 export function useFightSounds() {
   const engineRef = useRef<SoundEngine | null>(null);
   const commentaryRef = useRef<CommentaryEngine | null>(null);
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const [muted, setMuted] = useState(false);
   const [commentaryOn, setCommentaryOn] = useState(true);
+
+  /** Schedule a delayed action, tracked for cleanup on unmount */
+  const schedule = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      timersRef.current.delete(id);
+      fn();
+    }, ms);
+    timersRef.current.add(id);
+  }, []);
 
   const getEngine = useCallback(() => {
     if (!engineRef.current) {
@@ -32,23 +42,23 @@ export function useFightSounds() {
     c.warmup();
     e.startAmbience();
     // Animal roars as fighters are introduced (staggered)
-    if (f1Animal) setTimeout(() => e.playAnimalIntro(f1Animal), 300);
-    if (f2Animal) setTimeout(() => e.playAnimalIntro(f2Animal), 1200);
+    if (f1Animal) schedule(() => e.playAnimalIntro(f1Animal), 300);
+    if (f2Animal) schedule(() => e.playAnimalIntro(f2Animal), 1200);
     e.playFightStart();
     // Wait for bell + animal intros before commentary
-    setTimeout(() => c.playClip('intro'), 2000);
-  }, [getEngine, getCommentary]);
+    schedule(() => c.playClip('intro'), 2000);
+  }, [getEngine, getCommentary, schedule]);
 
   const onAttack = useCallback((damage: number, isCrit: boolean, attackerName?: string, moveName?: string) => {
     const e = getEngine();
     e.playHit(damage, isCrit);
     // Crowd reactions based on damage
     if (damage >= 16 || isCrit) {
-      setTimeout(() => e.playCrowdReact('heavy'), 200);
+      schedule(() => e.playCrowdReact('heavy'), 200);
     } else if (damage >= 11) {
-      setTimeout(() => e.playCrowdReact('medium'), 200);
+      schedule(() => e.playCrowdReact('medium'), 200);
     } else if (damage >= 6) {
-      setTimeout(() => e.playCrowdReact('light'), 200);
+      schedule(() => e.playCrowdReact('light'), 200);
     }
 
     let category: CommentaryCategory;
@@ -65,11 +75,11 @@ export function useFightSounds() {
     const c = getCommentary();
     const priority = isCrit ? 'high' as const : 'normal' as const;
     if (attackerName && moveName) {
-      setTimeout(() => c.playMove(attackerName, moveName, category, priority), 300);
+      schedule(() => c.playMove(attackerName, moveName, category, priority), 300);
     } else {
-      setTimeout(() => c.playClip(category, priority), 300);
+      schedule(() => c.playClip(category, priority), 300);
     }
-  }, [getEngine, getCommentary]);
+  }, [getEngine, getCommentary, schedule]);
 
   const onKo = useCallback(() => {
     const e = getEngine();
@@ -79,18 +89,18 @@ export function useFightSounds() {
     // 1. Crowd goes SILENT immediately
     e.stopAmbience();
     // 2. 300ms of total silence, then KO bell
-    setTimeout(() => {
+    schedule(() => {
       e.playKoBell();
       // 3. 200ms after bell starts, crowd EXPLODES
-      setTimeout(() => e.playKoCrowdRoar(), 200);
+      schedule(() => e.playKoCrowdRoar(), 200);
     }, 300);
     // KO call — wait for bell to hit, then announce
-    setTimeout(() => c.playClip('ko', 'high'), 1200);
+    schedule(() => c.playClip('ko', 'high'), 1200);
     // Celebration fanfare when winner screen appears (~3s after KO)
-    setTimeout(() => e.playCelebration(), 3000);
+    schedule(() => e.playCelebration(), 3000);
     // Exit wrap-up — give KO line time to finish (~5s)
-    setTimeout(() => c.playClip('exit', 'high'), 6000);
-  }, [getEngine, getCommentary]);
+    schedule(() => c.playClip('exit', 'high'), 6000);
+  }, [getEngine, getCommentary, schedule]);
 
   const onFightEnd = useCallback(() => {
     const e = getEngine();
@@ -119,14 +129,15 @@ export function useFightSounds() {
     c.stop();
   }, [getEngine, getCommentary]);
 
-  // Stop all sounds on unmount (navigating away mid-fight or post-fight)
+  // Stop all sounds and cancel pending timers on unmount
   useEffect(() => {
     return () => {
-      const e = SoundEngine.getInstance();
-      const c = CommentaryEngine.getInstance();
-      e.stopCelebration();
-      e.stopAmbience();
-      c.stop();
+      // Cancel all pending hook-level timers
+      for (const id of timersRef.current) clearTimeout(id);
+      timersRef.current.clear();
+      // Stop engine sounds + its internal timers
+      SoundEngine.getInstance().stopAll();
+      CommentaryEngine.getInstance().stop();
     };
   }, []);
 
