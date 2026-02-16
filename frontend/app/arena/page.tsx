@@ -57,6 +57,14 @@ function StatusBadge({ status, closesAt }: { status: number; closesAt?: number }
       </span>
     );
   }
+  if (status === PoolStatus.Cancelled) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+        Cancelled
+      </span>
+    );
+  }
   return null;
 }
 
@@ -289,6 +297,9 @@ function PoolCard({ pool }: { pool: PoolWithId }) {
     ? (pool.winnerId === pool.fighter1Id ? fighter1 : fighter2)
     : null;
 
+  const now = Math.floor(Date.now() / 1000);
+  const isClosing = status === PoolStatus.Open && closesAt > 0 && now >= closesAt;
+
   const href = `/arena/${poolId}`;
 
   return (
@@ -339,8 +350,8 @@ function PoolCard({ pool }: { pool: PoolWithId }) {
           </div>
         </div>
 
-        {/* Pool sizes for open */}
-        {status === PoolStatus.Open && (
+        {/* Pool sizes for open (hide when closing) */}
+        {status === PoolStatus.Open && !isClosing && (
           <div className="flex gap-2 mt-3">
             <div className="flex-1 bg-white/5 rounded-lg px-2 py-1.5 text-center">
               <div className="text-[10px] text-gray-500 uppercase">{fighter1.name}</div>
@@ -363,9 +374,14 @@ function PoolCard({ pool }: { pool: PoolWithId }) {
 
         {/* Action hint — pushed to bottom */}
         <div className="mt-auto pt-3 text-center">
-          {status === PoolStatus.Open && (
+          {status === PoolStatus.Open && !isClosing && (
             <span className="text-xs text-red-400 font-bold uppercase tracking-wider group-hover:text-red-300 transition-colors">
               Bet Now
+            </span>
+          )}
+          {isClosing && (
+            <span className="text-xs text-amber-400 font-bold uppercase tracking-wider">
+              Closing...
             </span>
           )}
           {status === PoolStatus.Closed && (
@@ -378,6 +394,11 @@ function PoolCard({ pool }: { pool: PoolWithId }) {
               View Details
             </span>
           )}
+          {status === PoolStatus.Cancelled && (
+            <span className="text-xs text-gray-600 font-bold uppercase tracking-wider">
+              No Bets
+            </span>
+          )}
         </div>
       </motion.div>
     </Link>
@@ -387,14 +408,19 @@ function PoolCard({ pool }: { pool: PoolWithId }) {
 export default function ArenaPage() {
   const { pools, loading } = useAllPools();
 
-  // Filter out stalled pools (closed > 10 min with no live fight)
+  // Filter out stalled pools
   const liveFights = useLiveFights();
   const now = Math.floor(Date.now() / 1000);
   const visiblePools = pools.filter((p) => {
-    if (p.status !== PoolStatus.Closed) return true;
-    const isLive = liveFights.has(String(p.poolId));
-    const isStuck = !isLive && p.closesAt > 0 && now - p.closesAt > 600;
-    return !isStuck;
+    // Hide stale open pools (timer expired, agent never closed them)
+    if (p.status === PoolStatus.Open && p.closesAt > 0 && now >= p.closesAt) return false;
+    // Hide stalled closed pools (closed > 10 min with no live fight)
+    if (p.status === PoolStatus.Closed) {
+      const isLive = liveFights.has(String(p.poolId));
+      const isStuck = !isLive && p.closesAt > 0 && now - p.closesAt > 600;
+      return !isStuck;
+    }
+    return true;
   });
 
   if (loading) {

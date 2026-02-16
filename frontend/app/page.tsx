@@ -86,6 +86,7 @@ function NextFightSection() {
 
   // Open — betting available
   const closesAt = pool ? new Date(pool.closesAt * 1000) : null;
+  const isBettingOpen = pool ? Math.floor(Date.now() / 1000) < pool.closesAt : false;
   return (
     <section>
       <h2 className="text-2xl font-black uppercase tracking-wider text-white mb-6">
@@ -99,17 +100,24 @@ function NextFightSection() {
           <FighterThumb fighter={fighter1} />
           <div className="flex flex-col items-center gap-2">
             <div className="text-3xl md:text-5xl font-black text-red-500">VS</div>
-            {closesAt && (
+            {closesAt && isBettingOpen && (
               <span className="text-xs text-gray-500 uppercase">
                 Betting closes {closesAt.toLocaleTimeString()}
               </span>
             )}
-            <Link
-              href="/betting"
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
-            >
-              Bet Now
-            </Link>
+            {!isBettingOpen && (
+              <span className="text-xs text-amber-400 uppercase font-bold">
+                Closing...
+              </span>
+            )}
+            {isBettingOpen && (
+              <Link
+                href="/betting"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+              >
+                Bet Now
+              </Link>
+            )}
           </div>
           <FighterThumb fighter={fighter2} />
         </div>

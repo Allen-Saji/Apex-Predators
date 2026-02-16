@@ -74,9 +74,9 @@ export function useAllPools(refetchInterval = 5000) {
     refetchPools();
   };
 
-  const { pools, openPools, closedPools, resolvedPools } = useMemo(() => {
+  const { pools, openPools, stalePools, closedPools, resolvedPools } = useMemo(() => {
     if (!poolResults || latestPoolId === undefined) {
-      return { pools: [], openPools: [], closedPools: [], resolvedPools: [] };
+      return { pools: [], openPools: [], stalePools: [], closedPools: [], resolvedPools: [] };
     }
 
     const all: PoolWithId[] = [];
@@ -99,13 +99,23 @@ export function useAllPools(refetchInterval = 5000) {
     const resolvedToHide = new Set(resolved.slice(3).map(p => p.poolId));
     const filtered = all.filter(p => !resolvedToHide.has(p.poolId));
 
+    const now = Math.floor(Date.now() / 1000);
+    // Open pools with expired timers are stale (agent likely died before closing)
+    const bettablePools = filtered.filter(
+      p => p.status === PoolStatus.Open && p.closesAt > 0 && now < p.closesAt,
+    );
+    const stalePools = filtered.filter(
+      p => p.status === PoolStatus.Open && p.closesAt > 0 && now >= p.closesAt,
+    );
+
     return {
       pools: filtered,
-      openPools: filtered.filter(p => p.status === PoolStatus.Open),
+      openPools: bettablePools,
+      stalePools,
       closedPools: filtered.filter(p => p.status === PoolStatus.Closed),
       resolvedPools: filtered.filter(p => p.status === PoolStatus.Resolved),
     };
   }, [poolResults, latestPoolId]);
 
-  return { pools, openPools, closedPools, resolvedPools, loading: !!loading, refetch };
+  return { pools, openPools, stalePools, closedPools, resolvedPools, loading: !!loading, refetch };
 }

@@ -1,6 +1,8 @@
 import {
   createPool,
   closePool,
+  cancelPool,
+  getPool,
   createFight,
   commitSeed,
   revealAndResolve,
@@ -123,6 +125,23 @@ export async function runFight(
   activeFight.stage = 'closing_pool';
   await closePool(poolId);
   log({ type: 'pool_closed', timestamp: Date.now(), data: { poolId: poolId.toString() } });
+
+  // 4b. Check if any bets were placed — skip fight if none
+  const poolData = await getPool(poolId) as any;
+  const totalF1 = BigInt(poolData.totalFighter1 ?? poolData[2] ?? 0);
+  const totalF2 = BigInt(poolData.totalFighter2 ?? poolData[3] ?? 0);
+  if (totalF1 === 0n && totalF2 === 0n) {
+    console.log(`[arena] No bets placed on pool ${poolId} — cancelling`);
+    await cancelPool(poolId);
+    log({ type: 'pool_closed', timestamp: Date.now(), data: { poolId: poolId.toString(), skipped: true, reason: 'no_bets' } });
+    fightEvents.emitFightProgress({
+      poolId: poolId.toString(),
+      stage: 'cancelled',
+      message: 'No bets placed — fight cancelled.',
+    });
+    activeFight = null;
+    throw new Error('No bets placed — fight skipped');
+  }
 
   // Notify SSE subscribers that this pool's fight is being prepared
   fightEvents.emitFightProgress({

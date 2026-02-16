@@ -186,6 +186,12 @@ export async function closePool(poolId: bigint): Promise<Hash> {
   return hash;
 }
 
+export async function cancelPool(poolId: bigint): Promise<Hash> {
+  const hash = await writeTx(CONTRACTS.bettingPool, BETTING_POOL_ABI, 'cancelPool', [poolId]);
+  console.log(`[blockchain] cancelPool tx: ${hash}`);
+  return hash;
+}
+
 export async function resolvePool(poolId: bigint, winnerId: bigint): Promise<Hash> {
   const hash = await writeTx(CONTRACTS.bettingPool, BETTING_POOL_ABI, 'resolvePool', [poolId, winnerId]);
   console.log(`[blockchain] resolvePool tx: ${hash}`);
